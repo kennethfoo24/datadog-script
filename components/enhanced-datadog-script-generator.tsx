@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Copy, ExternalLink } from 'lucide-react'
 
-export function EnhancedDatadogScriptGeneratorComponent() {
+export default function EnhancedDatadogScriptGenerator() {
   const [step, setStep] = useState(1)
   const [formData, setFormData] = useState({
     os: '',
@@ -34,6 +34,13 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       codeSecurityProfiling: true,
       containerHostVulnerabilityManagement: true,
     },
+    apmInstrumentationLanguages: {
+      java: false,
+      js: false,
+      python: false,
+      dotnet: false,
+      ruby: false,
+    },
     advancedOptions: {
       collectAllLogs: true,
       updateLogPermissions: true,
@@ -53,6 +60,16 @@ export function EnhancedDatadogScriptGeneratorComponent() {
     setFormData((prev) => ({
       ...prev,
       features: { ...prev.features, [feature]: !prev.features[feature as keyof typeof prev.features] },
+    }))
+  }
+
+  const handleApmLanguageToggle = (language: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      apmInstrumentationLanguages: { 
+        ...prev.apmInstrumentationLanguages, 
+        [language]: !prev.apmInstrumentationLanguages[language as keyof typeof prev.apmInstrumentationLanguages] 
+      },
     }))
   }
 
@@ -85,6 +102,13 @@ export function EnhancedDatadogScriptGeneratorComponent() {
 
   const generateScript = () => {
     if (formData.os === 'linux') {
+      const apmInstrumentationLibraries = formData.features.apm
+        ? `DD_APM_INSTRUMENTATION_LIBRARIES=${Object.entries(formData.apmInstrumentationLanguages)
+            .filter(([_, value]) => value)
+            .map(([key, _]) => `${key}:${key === 'js' ? '5' : key === 'python' ? '2' : key === 'dotnet' ? '3' : key === 'ruby' ? '2' : '1'}`)
+            .join(',')} \\`
+        : ''
+
       const script = `#!/bin/bash
 
 # Check if running as root
@@ -107,6 +131,7 @@ DD_API_KEY="$DD_API_KEY" \\
 DD_SITE="$DD_SITE" \\
 DD_ENV="$ENV_NAME" \\
 ${formData.features.apm ? 'DD_APM_INSTRUMENTATION_ENABLED=host \\' : ''}
+${apmInstrumentationLibraries}
 DD_LOGS_INJECTION=true \\
 DD_TRACE_SAMPLE_RATE="1" \\
 DD_RUNTIME_METRICS_ENABLED=true \\
@@ -290,6 +315,7 @@ echo "Datadog Agent installation and configuration complete."
 
       setGeneratedScript(script)
     } else {
+      // Windows script (unchanged)
       const script = `# Prompt for Datadog site selection
 Write-Host "Select your Datadog site:"
 Write-Host "1) US1 (Datadog US1)"
@@ -669,6 +695,48 @@ ${generatedScript}
                     onCheckedChange={() => handleFeatureToggle('apm')}
                     docLink="https://docs.datadoghq.com/tracing/"
                   />
+                  {formData.features.apm && formData.os === 'linux' && (
+                    <div className="col-span-2 ml-6 space-y-2">
+                      <Label className="text-sm font-semibold">APM Instrumentation Languages</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <FeatureCheckbox
+                          id="apm-java"
+                          label="Java"
+                          checked={formData.apmInstrumentationLanguages.java}
+                          onCheckedChange={() => handleApmLanguageToggle('java')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/java/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-js"
+                          label="JavaScript"
+                          checked={formData.apmInstrumentationLanguages.js}
+                          onCheckedChange={() => handleApmLanguageToggle('js')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-python"
+                          label="Python"
+                          checked={formData.apmInstrumentationLanguages.python}
+                          onCheckedChange={() => handleApmLanguageToggle('python')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/python/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-dotnet"
+                          label=".NET"
+                          checked={formData.apmInstrumentationLanguages.dotnet}
+                          onCheckedChange={() => handleApmLanguageToggle('dotnet')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-ruby"
+                          label="Ruby"
+                          checked={formData.apmInstrumentationLanguages.ruby}
+                          onCheckedChange={() => handleApmLanguageToggle('ruby')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/"
+                        />
+                      </div>
+                    </div>
+                  )}
                   <FeatureCheckbox
                     id="processAgent"
                     label="Process Monitoring"
