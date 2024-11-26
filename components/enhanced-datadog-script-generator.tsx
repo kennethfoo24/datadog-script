@@ -118,13 +118,13 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 # Datadog site and API key
-DD_SITE="${formData.site}"
-DD_API_KEY="${formData.apiKey}"
+export DD_SITE="${formData.site}"
+export DD_API_KEY="${formData.apiKey}"
 
 # Service details
-SERVICE_NAME="${formData.serviceName}"
-SOURCE_NAME="${formData.source}"
-ENV_NAME="${formData.env}"
+export SERVICE_NAME="${formData.serviceName}"
+export SOURCE_NAME="${formData.source}"
+export ENV_NAME="${formData.env}"
 
 # Install the Datadog Agent
 DD_API_KEY="$DD_API_KEY" \\
