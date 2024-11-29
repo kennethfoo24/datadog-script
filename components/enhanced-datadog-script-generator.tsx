@@ -367,7 +367,7 @@ Start-Process -Wait msiexec -ArgumentList '/passive /i "https://s3.amazonaws.com
 
 # Step 4: Configure the Datadog Agent
 Write-Host "Configuring Datadog Agent"
-$configFile = "C:\ProgramData\Datadog\datadog.yaml"
+$configFile = "C:\\ProgramData\\Datadog\\datadog.yaml"
 
 # Check if the configuration file exists
 if (Test-Path $configFile) {
@@ -381,7 +381,7 @@ if (Test-Path $configFile) {
 
 # Path to the datadog.yaml file
 Write-Host "Updating datadog.yaml file"
-$configFile = "C:\ProgramData\Datadog\datadog.yaml"
+$configFile = "C:\\ProgramData\\Datadog\\datadog.yaml"
 
 # Content to write to datadog.yaml
 $yamlContent = @"
@@ -389,7 +389,7 @@ $yamlContent = @"
 ##
 ## Edit this in file location :
 ## Linux: /etc/datadog-agent/datadog.yaml
-## Windows: %ProgramData%\Datadog\datadog.yaml
+## Windows: %ProgramData%\\Datadog\\datadog.yaml
 api_key: $apiKey
 site: $ddSite
 env: $environmentName
@@ -446,7 +446,7 @@ $yamlContent | Set-Content -Path $configFile -Encoding UTF8
 
 # Path to the security-agent.yaml file
 Write-Host "Updating security-agent.yaml file"
-$securityConfigFile = "C:\ProgramData\Datadog\security-agent.yaml"
+$securityConfigFile = "C:\\ProgramData\\Datadog\\security-agent.yaml"
 
 # Content to write to security-agent.yaml
 $securityYamlContent = @"
@@ -463,7 +463,7 @@ $securityYamlContent | Set-Content -Path $securityConfigFile -Encoding UTF8
 
 # Path to the system-probe.yaml file
 Write-Host "Updating system-probe.yaml file"
-$systemprobeConfigFile = "C:\ProgramData\Datadog\system-probe.yaml"
+$systemprobeConfigFile = "C:\\ProgramData\\Datadog\\system-probe.yaml"
 
 # Content to write to system-probe.yaml
 $systemprobeYamlContent = @"
@@ -494,7 +494,7 @@ $systemprobeYamlContent | Set-Content -Path $systemprobeConfigFile -Encoding UTF
 
 # Path to the win32_event_log.d/conf.yaml file
 Write-Host "Updating win32_event_log.d/conf.yaml file"
-$windowsEventLogConfigFile = "C:\ProgramData\Datadog\conf.d\win32_event_log.d\conf.yaml"
+$windowsEventLogConfigFile = "C:\\ProgramData\\Datadog\\conf.d\\win32_event_log.d\\conf.yaml"
 
 # Content to write to win32_event_log.d/conf.yaml
 $windowsEventLogYamlContent = @"
@@ -519,36 +519,36 @@ logs:
 $windowsEventLogYamlContent | Set-Content -Path $windowsEventLogConfigFile -Encoding UTF8
 
 # Create a new log configuration to collect all logs from every directory
-$logConfigDirectory = "C:\ProgramData\Datadog\conf.d"
+$logConfigDirectory = "C:\\ProgramData\\Datadog\\conf.d"
 $logsConfig = "logs:"
-$drives = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Root -match "^[A-Z]:\\" }
+$drives = Get-PSDrive -PSProvider FileSystem
 
 foreach ($drive in $drives) {
     $driveLetter = $drive.Root
     $logsConfig += @"
     
   - type: file
-    path: "$driveLetter\**\\*.log"
+    path: "$driveLetter\\**\\\\*.log"
     service: $serviceName
     source: $sourceName
     env: $environmentName
   - type: file
-    path: "$driveLetter\**\\*\\*.log"
+    path: "$driveLetter\\**\\\\*\\\\*.log"
     service: $serviceName
     source: $sourceName
     env: $environmentName
   - type: file
-    path: "$driveLetter\**\\*\\*\\*.log"
+    path: "$driveLetter\\**\\\\*\\\\*\\\\*.log"
     service: $serviceName
     source: $sourceName
     env: $environmentName
   - type: file
-    path: "$driveLetter\**\\*\\*\\*\\*.log"
+    path: "$driveLetter\\**\\\\*\\\\*\\\\*\\\\*.log"
     service: $serviceName
     source: $sourceName
     env: $environmentName
   - type: file
-    path: "$driveLetter\**\\*\\*\\*\\*\\*.log"
+    path: "$driveLetter\\**\\\\*\\\\*\\\\*\\\\*\\\\*.log"
     service: $serviceName
     source: $sourceName
     env: $environmentName
@@ -562,19 +562,19 @@ if (-not (Test-Path $logConfigDirectory)) {
 }
 
 # Write the log configuration to a file
-$logConfPath = "$logConfigDirectory\all_logs.d\conf.yaml"
-New-Item -Path "$logConfigDirectory\all_logs.d" -ItemType Directory -Force
+$logConfPath = "$logConfigDirectory\\all_logs.d\\conf.yaml"
+New-Item -Path "$logConfigDirectory\\all_logs.d" -ItemType Directory -Force
 Set-Content -Path $logConfPath -Value $logsConfig
 
 # Step 5: Restart the Datadog Agent Service
 Write-Host "Restarting Datadog Agent Service"
-& "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" restart-service
+& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" restart-service
 
 # Wait for services to fully restart
 Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
 
-& "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" status
-& "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" launch-gui
+& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status
+& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" launch-gui
 `
 
       setGeneratedScript(script)
