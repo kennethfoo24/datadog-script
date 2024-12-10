@@ -49,7 +49,6 @@ export function EnhancedDatadogScriptGeneratorComponent() {
 
   const [generatedScript, setGeneratedScript] = useState('')
   const scriptRef = useRef<HTMLTextAreaElement>(null)
-  const singleCommandRef = useRef<HTMLTextAreaElement>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -315,7 +314,6 @@ echo "Datadog Agent installation and configuration complete."
 
       setGeneratedScript(script)
     } else {
-      // Windows script (unchanged)
       const script = `# Prompt for Datadog site selection
 Write-Host "Select your Datadog site:"
 Write-Host "1) US1 (Datadog US1)"
@@ -581,19 +579,6 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
     }
   }
 
-  const generateSingleCommand = () => {
-    if (!generatedScript) return ''
-    if (formData.os === 'linux') {
-      return `sudo bash -c "cat << EOF > /tmp/datadog_install.sh
-${generatedScript}
-EOF
-chmod +x /tmp/datadog_install.sh && /tmp/datadog_install.sh"`
-    } else {
-      return `powershell -Command "& {Set-Content -Path $env:TEMP\\datadog_install.ps1 -Value @'
-${generatedScript}
-'@; Start-Process powershell -ArgumentList '-ExecutionPolicy Bypass -File $env:TEMP\\datadog_install.ps1' -Verb RunAs}"`
-    }
-  }
 
   const copyToClipboard = (ref: React.RefObject<HTMLTextAreaElement>) => {
     if (ref.current) {
@@ -878,24 +863,6 @@ ${generatedScript}
       {generatedScript && (
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-2">How to Execute the Script</h2>
-          <h3 className="text-lg font-semibold mt-4 mb-2">Option 1: Single Command Execution</h3>
-          <p>Copy and paste the following command into your terminal to create, make executable, and run the script:</p>
-          <div className="relative mt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="absolute top-2 right-2 z-10"
-              onClick={() => copyToClipboard(singleCommandRef)}
-              aria-label="Copy single command execution"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Textarea ref={singleCommandRef} value={generateSingleCommand()} readOnly className="h-24 font-mono text-sm pr-10" />
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">Note: This command will create the script, make it executable, and run it with appropriate privileges.</p>
-
-          <h3 className="text-lg font-semibold mt-6 mb-2">Option 2: Step-by-Step Execution</h3>
           <ol className="list-decimal list-inside space-y-2">
             <li>Copy the generated script from the "Generated Installation Script" textarea above.</li>
             <li>Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
