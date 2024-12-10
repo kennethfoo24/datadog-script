@@ -651,15 +651,15 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Additional Configuration</h2>
             <div>
-              <Label htmlFor="serviceName">Service Name</Label>
+              <Label htmlFor="serviceName">Service Name (eg: app-abc, payment-gateway)</Label>
               <Input type="text" id="serviceName" name="serviceName" value={formData.serviceName} onChange={handleInputChange} placeholder="Enter the service name" />
             </div>
             <div>
-              <Label htmlFor="source">Source</Label>
+              <Label htmlFor="source">Source Name (eg: java, nodejs, python)</Label>
               <Input type="text" id="source" name="source" value={formData.source} onChange={handleInputChange} placeholder="Enter the source" />
             </div>
             <div>
-              <Label htmlFor="env">Environment</Label>
+              <Label htmlFor="env">Environment Name (eg: prod, stg, dev)</Label>
               <Input type="text" id="env" name="env" value={formData.env} onChange={handleInputChange} placeholder="Enter the environment" />
             </div>
             <div className="space-y-4">
@@ -812,7 +812,7 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
 
   return (
     <div className="container mx-auto p-4 max-w-3xl">
-      <h1 className="text-2xl font-bold mb-4">Enhanced Datadog Agent Installation Script Generator</h1>
+      <h1 className="text-2xl font-bold mb-4">Datadog Agent Installation Script</h1>
       <div className="mb-4">
         <div className="flex items-center">
           {[1,2,3,4].map((s) => (
