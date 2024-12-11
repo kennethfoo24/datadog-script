@@ -81,7 +81,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
 
   const nextStep = () => {
     if (step === 1 && !formData.os) {
-      alert("Please select an operating system.")
+      alert("Please select a platform.")
       return
     }
     if (step === 2 && !formData.site) {
@@ -313,7 +313,7 @@ echo "Datadog Agent installation and configuration complete."
 `
 
       setGeneratedScript(script)
-    } else {
+    } else if (formData.os === 'windows') {
       const script = `# Prompt for Datadog site selection
 Write-Host "Select your Datadog site:"
 Write-Host "1) US1 (Datadog US1)"
@@ -576,9 +576,79 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
 `
 
       setGeneratedScript(script)
+    } else if (formData.os === 'docker') {
+      const script = `# Run the Datadog Agent installation script for Docker
+${formData.features.apm ? 'DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"' : ''}
+
+# Run the Datadog Agent Docker container
+docker run -d --name dd-agent \\
+--cgroupns host \\
+--pid host \\
+-e DD_API_KEY=${formData.apiKey} \\
+-e DD_SITE="${formData.site}" \\
+-e DD_ENV=${formData.env} \\
+-e DD_APM_ENABLED=${formData.features.apm} \\
+${formData.features.apm ? '-e DD_APM_NON_LOCAL_TRAFFIC=true \\' : ''}
+${formData.features.apm ? '-e DD_APM_RECEIVER_SOCKET=/opt/datadog/apm/inject/run/apm.socket \\' : ''}
+${formData.features.apm ? '-e DD_DOGSTATSD_SOCKET=/opt/datadog/apm/inject/run/dsd.socket \\' : ''}
+${formData.features.apm ? '-v /opt/datadog/apm:/opt/datadog/apm \\' : ''}
+-e DD_APPSEC_ENABLED=${formData.features.threatProtection} \\
+-e DD_IAST_ENABLED=${formData.features.codeSecurityProfiling} \\
+-e DD_APPSEC_SCA_ENABLED=${formData.features.softwareCompositionAnalysis} \\
+${formData.features.otlp ? `-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0.0.0.0:4317 \\
+-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_HTTP_ENDPOINT=0.0.0.0:4318 \\
+-e DD_OTLP_CONFIG_LOGS_ENABLED=true \\` : ''}
+-e DD_LOGS_ENABLED=${formData.features.logs} \\
+-e DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=${formData.features.logs} \\
+-v /opt/datadog-agent/run:/opt/datadog-agent/run:rw \\
+-e DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED=${formData.features.processAgent} \\
+-v /etc/passwd:/etc/passwd:ro \\
+-e DD_SYSTEM_PROBE_NETWORK_ENABLED=${formData.features.networkMonitoring} \\
+-e DD_PROCESS_AGENT_ENABLED=${formData.features.processAgent} \\
+-e DD_COMPLIANCE_CONFIG_ENABLED=${formData.features.cloudSecurityPostureManagement} \\
+-e DD_COMPLIANCE_CONFIG_HOST_BENCHMARKS_ENABLED=${formData.features.cloudSecurityPostureManagement} \\
+-e DD_RUNTIME_SECURITY_CONFIG_ENABLED=${formData.features.cloudWorkloadSecurity} \\
+-e DD_RUNTIME_SECURITY_CONFIG_REMOTE_CONFIGURATION_ENABLED=${formData.features.cloudWorkloadSecurity} \\
+-e DD_SYSTEM_PROBE_SERVICE_MONITORING_ENABLED=${formData.features.universalServiceMonitoring} \\
+-v /lib/modules:/lib/modules:ro \\
+-v /usr/src:/usr/src:ro \\
+-v /var/tmp/datadog-agent/system-probe/build:/var/tmp/datadog-agent/system-probe/build \\
+-v /var/tmp/datadog-agent/system-probe/kernel-headers:/var/tmp/datadog-agent/system-probe/kernel-headers \\
+-v /etc/apt:/host/etc/apt:ro \\
+-v /etc/yum.repos.d:/host/etc/yum.repos.d:ro \\
+-v /etc/zypp:/host/etc/zypp:ro \\
+-v /etc/pki:/host/etc/pki:ro \\
+-v /etc/yum/vars:/host/etc/yum/vars:ro \\
+-v /etc/dnf/vars:/host/etc/dnf/vars:ro \\
+-v /etc/rhsm:/host/etc/rhsm:ro \\
+-v /var/run/docker.sock:/var/run/docker.sock:ro \\
+-e HOST_ROOT=/host/root \\
+-v /proc/:/host/proc/:ro \\
+-v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro \\
+-v /var/lib/docker/containers:/var/lib/docker/containers:ro \\
+-v /etc/group:/etc/group:ro \\
+-v /:/host/root:ro \\
+-v /sys/kernel/debug:/sys/kernel/debug \\
+-v /etc/os-release:/etc/os-release \\
+-v /sys/kernel/debug:/sys/kernel/debug \\
+--security-opt apparmor:unconfined \\
+--cap-add=SYS_ADMIN \\
+--cap-add=SYS_RESOURCE \\
+--cap-add=SYS_PTRACE \\
+--cap-add=NET_ADMIN \\
+--cap-add=NET_BROADCAST \\
+--cap-add=NET_RAW \\
+--cap-add=IPC_LOCK \\
+--cap-add=CHOWN \\
+gcr.io/datadoghq/agent:7
+
+echo "Datadog Agent Docker container started. Please check the container logs for any issues."
+echo "You can view the logs by running: docker logs dd-agent"
+`
+
+      setGeneratedScript(script)
     }
   }
-
 
   const copyToClipboard = (ref: React.RefObject<HTMLTextAreaElement>) => {
     if (ref.current) {
@@ -593,7 +663,7 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
       case 1:
         return (
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Step 1: Select Operating System</h2>
+            <h2 className="text-xl font-semibold">Step 1: Select Platform</h2>
             <RadioGroup
               value={formData.os}
               onValueChange={(value) => setFormData((prev) => ({ ...prev, os: value }))}
@@ -606,6 +676,10 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="windows" id="os-windows" />
                 <Label htmlFor="os-windows">Windows</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="docker" id="os-docker" />
+                <Label htmlFor="os-docker">Docker</Label>
               </div>
             </RadioGroup>
           </div>
@@ -650,14 +724,18 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Additional Configuration</h2>
-            <div>
-              <Label htmlFor="serviceName">Service Name (eg: app-abc, payment-gateway)</Label>
-              <Input type="text" id="serviceName" name="serviceName" value={formData.serviceName} onChange={handleInputChange} placeholder="Enter the service name" />
-            </div>
-            <div>
-              <Label htmlFor="source">Source Name (eg: java, nodejs, python)</Label>
-              <Input type="text" id="source" name="source" value={formData.source} onChange={handleInputChange} placeholder="Enter the source" />
-            </div>
+            {formData.os !== 'docker' && (
+              <>
+                <div>
+                  <Label htmlFor="serviceName">Service Name (eg: app-abc, payment-gateway)</Label>
+                  <Input type="text" id="serviceName" name="serviceName" value={formData.serviceName} onChange={handleInputChange} placeholder="Enter the service name" />
+                </div>
+                <div>
+                  <Label htmlFor="source">Source Name (eg: java, nodejs, python)</Label>
+                  <Input type="text" id="source" name="source" value={formData.source} onChange={handleInputChange} placeholder="Enter the source" />
+                </div>
+              </>
+            )}
             <div>
               <Label htmlFor="env">Environment Name (eg: prod, stg, dev)</Label>
               <Input type="text" id="env" name="env" value={formData.env} onChange={handleInputChange} placeholder="Enter the environment" />
@@ -793,18 +871,22 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
                 </div>
               </div>
             </div>
-            <div className="my-6 border-t border-gray-200"></div>
-            <div className="space-y-2">
-              <Label>Advanced Options</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="collectAllLogs" checked={formData.advancedOptions.collectAllLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectAllLogs')} />
-                <Label htmlFor="collectAllLogs">Collect All Logs</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox id="updateLogPermissions" checked={formData.advancedOptions.updateLogPermissions} onCheckedChange={() => handleAdvancedOptionToggle('updateLogPermissions')} />
-                <Label htmlFor="updateLogPermissions">Update Log Permissions</Label>
-              </div>
-            </div>
+            {formData.os !== 'docker' && (
+              <>
+                <div className="my-6 border-t border-gray-200"></div>
+                <div className="space-y-2">
+                  <Label>Advanced Options</Label>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="collectAllLogs" checked={formData.advancedOptions.collectAllLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectAllLogs')} />
+                    <Label htmlFor="collectAllLogs">Collect All Logs</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="updateLogPermissions" checked={formData.advancedOptions.updateLogPermissions} onCheckedChange={() => handleAdvancedOptionToggle('updateLogPermissions')} />
+                    <Label htmlFor="updateLogPermissions">Update Log Permissions</Label>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )
     }
@@ -865,29 +947,40 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
           <h2 className="text-xl font-bold mb-2">How to Execute the Script</h2>
           <ol className="list-decimal list-inside space-y-2">
             <li>Copy the generated script from the "Generated Installation Script" textarea above.</li>
-            <li>Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
-            <li>Paste the copied script into the text editor.</li>
-            <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g., {formData.os === 'linux' ? 'datadog_install.sh'  : 'datadog_install.ps1'}).</li>
-            <li>Open a {formData.os === 'linux' ? 'terminal' : 'PowerShell window'} on your machine.</li>
-            <li>Navigate to the directory where you saved the script using the cd command.</li>
-            {formData.os === 'linux' ? (
+            {formData.os === 'docker' ? (
               <>
-                <li>Make the script executable by running the following command:
-                  <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog_install.sh</pre>
-                </li>
-                <li>Execute the script with root privileges using sudo:
-                  <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog_install.sh</pre>
-                </li>
+                <li>Open a terminal on your Docker host machine.</li>
+                <li>Paste the copied script into a new file, for example, <code>datadog_install.sh</code>.</li>
+                <li>Make the script executable by running: <code>chmod +x datadog_install.sh</code></li>
+                <li>Execute the script with: <code>./datadog_install.sh</code></li>
               </>
             ) : (
-              <li>Execute the script with administrator privileges:
-                <pre className="bg-muted p-2 mt-1 rounded">powershell -ExecutionPolicy Bypass -File .\datadog_install.ps1</pre>
-              </li>
+              <>
+                <li>Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
+                <li>Paste the copied script into the text editor.</li>
+                <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g., {formData.os === 'linux' ? 'datadog_install.sh'  : 'datadog_install.ps1'}).</li>
+                <li>Open a {formData.os === 'linux' ? 'terminal' : 'PowerShell window'} on your machine.</li>
+                <li>Navigate to the directory where you saved the script using the cd command.</li>
+                {formData.os === 'linux' ? (
+                  <>
+                    <li>Make the script executable by running the following command:
+                      <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog_install.sh</pre>
+                    </li>
+                    <li>Execute the script with root privileges using sudo:
+                      <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog_install.sh</pre>
+                    </li>
+                  </>
+                ) : (
+                  <li>Execute the script with administrator privileges:
+                    <pre className="bg-muted p-2 mt-1 rounded">powershell -ExecutionPolicy Bypass -File .\datadog_install.ps1</pre>
+                  </li>
+                )}
+              </>
             )}
             <li>Follow any prompts or instructions provided by the script during execution.</li>
             <li>Once the script completes, verify that the Datadog Agent is running:
               <pre className="bg-muted p-2 mt-1 rounded">
-                {formData.os === 'linux' ? 'sudo datadog-agent status' : '& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status'}
+                {formData.os === 'linux' ? 'sudo datadog-agent status' : formData.os === 'windows' ? '& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status' : 'docker logs dd-agent'}
               </pre>
             </li>
           </ol>
