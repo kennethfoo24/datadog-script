@@ -951,8 +951,8 @@ echo "You can view the logs by running: docker logs dd-agent"
               <>
                 <li>Open a terminal on your Docker host machine.</li>
                 <li>Paste the copied script into a new file, for example, <code>datadog_install.sh</code>.</li>
-                <li>Make the script executable by running: <code>chmod +x datadog_install.sh</code></li>
-                <li>Execute the script with: <code>./datadog_install.sh</code></li>
+                <li>Make the script executable by running: <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog_install.sh</pre></li>
+                <li>Execute the script with: <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog_install.sh</pre></li>
               </>
             ) : (
               <>
@@ -980,7 +980,7 @@ echo "You can view the logs by running: docker logs dd-agent"
             <li>Follow any prompts or instructions provided by the script during execution.</li>
             <li>Once the script completes, verify that the Datadog Agent is running:
               <pre className="bg-muted p-2 mt-1 rounded">
-                {formData.os === 'linux' ? 'sudo datadog-agent status' : formData.os === 'windows' ? '& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status' : 'docker logs dd-agent'}
+                {formData.os === 'linux' ? 'sudo datadog-agent status' : formData.os === 'windows' ? '& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status' : 'sudo docker exec -it dd-agent agent status'}
               </pre>
             </li>
           </ol>
