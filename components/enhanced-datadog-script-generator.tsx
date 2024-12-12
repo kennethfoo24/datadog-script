@@ -987,6 +987,23 @@ echo "You can view the logs by running: docker logs dd-agent"
           <p className="mt-4 text-red-600 font-semibold">
             Warning: Always review scripts before running them with elevated privileges. Ensure you trust the source and understand the actions the script will perform on your system.
           </p>
+          
+          {formData.os === 'docker' && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold mb-2">Run on Docker Compose</h2>
+              <p className="mb-4">
+                If you prefer to use Docker Compose to manage your containers, you can easily convert the Docker run command to a Docker Compose file. Follow these steps:
+              </p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Copy the entire Docker run command from the generated script.</li>
+                <li>You can visit <a href="https://www.composerize.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.composerize.com/</a>.</li>
+                <li>Composerize will automatically convert the command into a Docker Compose YAML format.</li>
+              </ol>
+              <p className="mt-4">
+                Using Docker Compose can make it easier to manage and update your Datadog Agent configuration, especially if you're running multiple containers or services.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
