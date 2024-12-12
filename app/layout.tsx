@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import Script from "next/script";
+
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -28,6 +30,31 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Script
+             id="dd-rum-sync"
+             src="https://www.datadoghq-browser-agent.com/us1/v5/datadog-rum.js"
+             type="text/javascript"
+             strategy="beforeInteractive"
+           />
+           <Script id="datadog-rum">
+             {`
+               window.DD_RUM && window.DD_RUM.init({
+                 clientToken: 'pubee00f06d3327dd5d912d2f4d007af9cf',
+                 applicationId: '8e51f75a-7ae4-44ab-9e8e-72a3aa5b4e2b',
+                 site: 'datadoghq.com',
+                 service: 'datadog-script-generator',
+                 env: 'datadog-script-generator',
+                 // Specify a version number to identify the deployed version of your application in Datadog
+                 // version: '1.0.0',
+                 sessionSampleRate: 100,
+                 sessionReplaySampleRate: 100,
+                 trackUserInteractions: true,
+                 trackResources: true,
+                 trackLongTasks: true,
+                 defaultPrivacyLevel: 'allow',
+               });
+             `}
+        </Script>
         {children}
       </body>
     </html>
