@@ -144,7 +144,7 @@ ${formData.features.containerHostVulnerabilityManagement ? 'DD_SBOM_HOST_ENABLED
 bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"
 
 # Append custom configuration to datadog.yaml
-cat <<EOF >> /etc/datadog-agent/datadog.yaml
+cat <<EOF > /etc/datadog-agent/datadog.yaml
 
 ## Custom Configuration
 api_key: $DD_API_KEY
@@ -222,7 +222,7 @@ iast_config:
 EOF
 
 ${formData.features.cloudWorkloadSecurity || formData.features.cloudSecurityPostureManagement ? `# Append custom configuration to security-agent.yaml
-cat <<EOF >> /etc/datadog-agent/security-agent.yaml
+cat <<EOF > /etc/datadog-agent/security-agent.yaml
 
 ${formData.features.cloudWorkloadSecurity ? `## CWS
 runtime_security_config: 
@@ -237,7 +237,7 @@ compliance_config:
 EOF` : ''}
 
 ${formData.features.universalServiceMonitoring || formData.features.networkMonitoring || formData.features.processAgent || formData.features.cloudWorkloadSecurity ? `# Append custom configuration to system-probe.yaml
-cat <<EOF >> /etc/datadog-agent/system-probe.yaml
+cat <<EOF > /etc/datadog-agent/system-probe.yaml
 
 ${formData.features.universalServiceMonitoring ? `## Universal Service Monitoring
 service_monitoring_config:
