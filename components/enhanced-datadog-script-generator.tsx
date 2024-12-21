@@ -16,8 +16,6 @@ export function EnhancedDatadogScriptGeneratorComponent() {
     os: '',
     site: '',
     apiKey: '',
-    serviceName: 'default_service',
-    source: 'default_source',
     env: 'default_env',
     features: {
       logs: true,
@@ -120,9 +118,7 @@ fi
 export DD_SITE="${formData.site}"
 export DD_API_KEY="${formData.apiKey}"
 
-# Service details
-export SERVICE_NAME="${formData.serviceName}"
-export SOURCE_NAME="${formData.source}"
+# Environment
 export ENV_NAME="${formData.env}"
 
 # Install the Datadog Agent
@@ -150,11 +146,6 @@ cat <<EOF > /etc/datadog-agent/datadog.yaml
 api_key: $DD_API_KEY
 site: $DD_SITE
 env: $ENV_NAME
-
-## Tags
-tags:
-  - service:$SERVICE_NAME
-  - source:$SOURCE_NAME
 
 ## Logs
 logs_enabled: ${formData.features.logs}
@@ -269,28 +260,16 @@ cat <<EOF > /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
 logs:
   - type: file
     path: "*.log"
-    service: $SERVICE_NAME
-    source: $SOURCE_NAME
   - type: file
     path: /*.log
-    service: $SERVICE_NAME
-    source: $SOURCE_NAME
   - type: file
     path: /**/*.log
-    service: $SERVICE_NAME
-    source: $SOURCE_NAME
   - type: file
     path: /**/**/*.log
-    service: $SERVICE_NAME
-    source: $SOURCE_NAME
   - type: file
     path: /**/**/**/*.log
-    service: $SERVICE_NAME
-    source: $SOURCE_NAME
   - type: file
     path: /**/**/**/**/*.log
-    service: $SERVICE_NAME
-    source: $SOURCE_NAME
 EOF` : ''}
 
 ${formData.advancedOptions.updateLogPermissions ? `# Update permissions for .log files
@@ -347,17 +326,11 @@ Write-Host "Selected Datadog site: $ddSite"
 # Prompt for Datadog API key
 $apiKey = "${formData.apiKey}"
 
-# Prompt for Service Name
-$serviceName = "${formData.serviceName}"
-
-# Prompt for Source Name
-$sourceName = "${formData.source}"
-
 # Prompt for Environment Name
 $environmentName = "${formData.env}"
 
 # Construct tags from input
-$tags = "service:$serviceName,source:$sourceName,env:$environmentName"
+$tags = "env:$environmentName"
 
 # Step 3: Install the Datadog Agent
 Write-Host "Installing Datadog Agent"
@@ -394,8 +367,6 @@ env: $environmentName
 
 ## Tags https://docs.datadoghq.com/tagging/
 tags:
-  - service: $serviceName
-  - source: $sourceName
   - env: $environmentName
 
 ## Logs 
@@ -516,53 +487,37 @@ logs:
 # Write the content to the win32_event_log.d/conf.yaml file
 $windowsEventLogYamlContent | Set-Content -Path $windowsEventLogConfigFile -Encoding UTF8
 
-# Create a new log configuration to collect all logs from every directory
-$logConfigDirectory = "C:\\ProgramData\\Datadog\\conf.d"
-$logsConfig = "logs:"
-$drives = Get-PSDrive -PSProvider FileSystem
+# Update the iis.d/conf.yaml file with the provided content
 
-foreach ($drive in $drives) {
-    $driveLetter = $drive.Root
-    $logsConfig += @"
-    
+# Path to the iis.d/conf.yaml file
+Write-Host "Updating iis.d/conf.yaml file"
+$iisLogConfigFile = "C:\ProgramData\Datadog\conf.d\iis.d\conf.yaml"
+
+# Content to write to iis.d/conf.yaml
+$iisYamlContent = @"
+init_config:
+
+instances:
+  - host: .
+
+logs:
   - type: file
-    path: "$driveLetter\\**\\\\*.log"
-    service: $serviceName
-    source: $sourceName
-    env: $environmentName
+    path: C:\\inetpub\\logs\\LogFiles\\W3SVC1\\u_ex*
+    service: iis
+    source: iis
   - type: file
-    path: "$driveLetter\\**\\\\*\\\\*.log"
-    service: $serviceName
-    source: $sourceName
-    env: $environmentName
+    path: C:\\inetpub\\logs\\LogFiles\\W3SVC2\\u_ex*
+    service: iis
+    source: iis
   - type: file
-    path: "$driveLetter\\**\\\\*\\\\*\\\\*.log"
-    service: $serviceName
-    source: $sourceName
-    env: $environmentName
-  - type: file
-    path: "$driveLetter\\**\\\\*\\\\*\\\\*\\\\*.log"
-    service: $serviceName
-    source: $sourceName
-    env: $environmentName
-  - type: file
-    path: "$driveLetter\\**\\\\*\\\\*\\\\*\\\\*\\\\*.log"
-    service: $serviceName
-    source: $sourceName
-    env: $environmentName
+    path: C:\\inetpub\\logs\\LogFiles\\W3SVC*\\u_ex*
+    service: iis
+    source: iis
 "@
-}
 
+# Write the content to the iis.d/conf.yaml file
+$iisYamlContent | Set-Content -Path $iisLogConfigFile -Encoding UTF8
 
-# Create log configuration directory if it doesn't exist
-if (-not (Test-Path $logConfigDirectory)) {
-    New-Item -Path $logConfigDirectory -ItemType Directory
-}
-
-# Write the log configuration to a file
-$logConfPath = "$logConfigDirectory\\all_logs.d\\conf.yaml"
-New-Item -Path "$logConfigDirectory\\all_logs.d" -ItemType Directory -Force
-Set-Content -Path $logConfPath -Value $logsConfig
 
 # Step 5: Restart the Datadog Agent Service
 Write-Host "Restarting Datadog Agent Service"
@@ -724,18 +679,6 @@ echo "You can view the logs by running: docker logs dd-agent"
         return (
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Additional Configuration</h2>
-            {formData.os !== 'docker' && (
-              <>
-                <div>
-                  <Label htmlFor="serviceName">Service Name (eg: app-abc, payment-gateway)</Label>
-                  <Input type="text" id="serviceName" name="serviceName" value={formData.serviceName} onChange={handleInputChange} placeholder="Enter the service name" />
-                </div>
-                <div>
-                  <Label htmlFor="source">Source Name (eg: java, nodejs, python)</Label>
-                  <Input type="text" id="source" name="source" value={formData.source} onChange={handleInputChange} placeholder="Enter the source" />
-                </div>
-              </>
-            )}
             <div>
               <Label htmlFor="env">Environment Name (eg: prod, stg, dev)</Label>
               <Input type="text" id="env" name="env" value={formData.env} onChange={handleInputChange} placeholder="Enter the environment" />
@@ -996,7 +939,7 @@ echo "You can view the logs by running: docker logs dd-agent"
               </p>
               <ol className="list-decimal list-inside space-y-2">
                 <li>Copy the entire Docker run command from the generated script.</li>
-                <li>You can visit <a href="https://www.composerize.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.composerize.com/</a>.</li>
+                <li>Visit <a href="https://www.composerize.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.composerize.com/</a>.</li>
                 <li>Composerize will automatically convert the command into a Docker Compose YAML format.</li>
               </ol>
               <p className="mt-4">
