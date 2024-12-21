@@ -301,35 +301,9 @@ echo "Datadog Agent installation and configuration complete."
 
       setGeneratedScript(script)
     } else if (formData.os === 'windows') {
-      const script = `# Prompt for Datadog site selection
-Write-Host "Select your Datadog site:"
-Write-Host "1) US1 (Datadog US1)"
-Write-Host "2) US3 (Datadog US3)"
-Write-Host "3) US5 (Datadog US5)"
-Write-Host "4) EU1 (Datadog EU)"
-Write-Host "5) US1-FED (Datadog US1 Federal)"
-Write-Host "6) AP1 (Datadog AP1)"
-
-$siteSelection = Read-Host "Enter the number corresponding to your site [1]:"
-if ([string]::IsNullOrEmpty($siteSelection)) {
-    $siteSelection = "1"
-}
-
-# Map the selection to the site parameter
-switch ($siteSelection) {
-    "1" { $ddSite = "datadoghq.com" }
-    "2" { $ddSite = "us3.datadoghq.com" }
-    "3" { $ddSite = "us5.datadoghq.com" }
-    "4" { $ddSite = "datadoghq.eu" }
-    "5" { $ddSite = "ddog-gov.com" }
-    "6" { $ddSite = "ap1.datadoghq.com" }
-    default {
-        Write-Host "Invalid selection. Defaulting to US1 (datadoghq.com)."
-        $ddSite = "datadoghq.com"
-    }
-}
-
-Write-Host "Selected Datadog site: $ddSite"
+      const script = `
+# Prompt for Datadog site selection
+$ddSite = "${formData.site}"
 
 # Prompt for Datadog API key
 $apiKey = "${formData.apiKey}"
