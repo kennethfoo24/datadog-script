@@ -42,6 +42,8 @@ export function EnhancedDatadogScriptGeneratorComponent() {
     advancedOptions: {
       collectAllLogs: true,
       updateLogPermissions: true,
+      collectIISLogs: true,
+      collectWindowsEventLogs: true,
     },
   })
 
@@ -256,21 +258,27 @@ EOF` : ''}
 ${formData.advancedOptions.collectAllLogs ? `# Configure the Agent to collect all .log files on the system
 mkdir -p /etc/datadog-agent/conf.d/all_logs.d
 
-cat <<EOF > /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
-logs:
+log_dirs=$(find /var/log -type f -name "*.log" 2>/dev/null | xargs -r dirname | sort -u)
+
+# Begin the logs configuration file
+echo "logs:" > /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
+
+# Loop through each directory and create a log config entry
+while IFS= read -r dir; do
+    # Derive a service name from the directory name
+    # For example, use the last component of the directory path as the service name.
+    service_name=$(basename "$dir")
+    source_name=$(basename "$dir")
+
+    # Create a log collection configuration entry for this directory
+    cat <<EOF >> /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
   - type: file
-    path: "*.log"
-  - type: file
-    path: /*.log
-  - type: file
-    path: /**/*.log
-  - type: file
-    path: /**/**/*.log
-  - type: file
-    path: /**/**/**/*.log
-  - type: file
-    path: /**/**/**/**/*.log
-EOF` : ''}
+    path: "$dir/*.log"
+    service: "$service_name"
+    source: "$source_name"
+EOF
+
+done <<< "$log_dirs"` : ''}
 
 ${formData.advancedOptions.updateLogPermissions ? `# Update permissions for .log files
 echo "Updating permissions for .log files..."
@@ -459,8 +467,8 @@ runtime_security_config:
 # Write the content to the system-probe.yaml file
 $systemprobeYamlContent | Set-Content -Path $systemprobeConfigFile -Encoding UTF8
 
+${formData.advancedOptions.collectWindowsEventLogs ? `
 # Update the win32_event_log.d/conf.yaml file with the provided content
-
 # Path to the win32_event_log.d/conf.yaml file
 Write-Host "Updating win32_event_log.d/conf.yaml file"
 $windowsEventLogConfigFile = "C:\\ProgramData\\Datadog\\conf.d\\win32_event_log.d\\conf.yaml"
@@ -486,12 +494,13 @@ logs:
 
 # Write the content to the win32_event_log.d/conf.yaml file
 $windowsEventLogYamlContent | Set-Content -Path $windowsEventLogConfigFile -Encoding UTF8
+` : ''}
 
+${formData.advancedOptions.collectIISLogs ? `
 # Update the iis.d/conf.yaml file with the provided content
-
 # Path to the iis.d/conf.yaml file
 Write-Host "Updating iis.d/conf.yaml file"
-$iisLogConfigFile = "C:\ProgramData\Datadog\conf.d\iis.d\conf.yaml"
+$iisLogConfigFile = "C:\\ProgramData\\Datadog\\conf.d\\iis.d\\conf.yaml"
 
 # Content to write to iis.d/conf.yaml
 $iisYamlContent = @"
@@ -517,8 +526,7 @@ logs:
 
 # Write the content to the iis.d/conf.yaml file
 $iisYamlContent | Set-Content -Path $iisLogConfigFile -Encoding UTF8
-
-
+` : ''}
 # Step 5: Restart the Datadog Agent Service
 Write-Host "Restarting Datadog Agent Service"
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" restart-service
@@ -819,14 +827,30 @@ echo "You can view the logs by running: docker logs dd-agent"
                 <div className="my-6 border-t border-gray-200"></div>
                 <div className="space-y-2">
                   <Label>Advanced Options</Label>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="collectAllLogs" checked={formData.advancedOptions.collectAllLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectAllLogs')} />
-                    <Label htmlFor="collectAllLogs">Collect All Logs</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox id="updateLogPermissions" checked={formData.advancedOptions.updateLogPermissions} onCheckedChange={() => handleAdvancedOptionToggle('updateLogPermissions')} />
-                    <Label htmlFor="updateLogPermissions">Update Log Permissions</Label>
-                  </div>
+                  {formData.os === 'linux' && (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="collectAllLogs" checked={formData.advancedOptions.collectAllLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectAllLogs')} />
+                        <Label htmlFor="collectAllLogs">Collect All Logs</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="updateLogPermissions" checked={formData.advancedOptions.updateLogPermissions} onCheckedChange={() => handleAdvancedOptionToggle('updateLogPermissions')} />
+                        <Label htmlFor="updateLogPermissions">Update Log Permissions</Label>
+                      </div>
+                    </>
+                  )}
+                  {formData.os === 'windows' && (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="collectIISLogs" checked={formData.advancedOptions.collectIISLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectIISLogs')} />
+                        <Label htmlFor="collectIISLogs">Collect IIS Logs</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="collectWindowsEventLogs" checked={formData.advancedOptions.collectWindowsEventLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectWindowsEventLogs')} />
+                        <Label htmlFor="collectWindowsEventLogs">Collect Windows Event Logs</Label>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
