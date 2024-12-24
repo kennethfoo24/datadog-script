@@ -559,6 +559,7 @@ ${formData.features.otlp ? `-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0
 -v /etc/dnf/vars:/host/etc/dnf/vars:ro \\
 -v /etc/rhsm:/host/etc/rhsm:ro \\
 -v /var/run/docker.sock:/var/run/docker.sock:ro \\
+-v /var/run/datadog/:/var/run/datadog/ \\
 -e HOST_ROOT=/host/root \\
 -v /proc/:/host/proc/:ro \\
 -v /sys/fs/cgroup/:/host/sys/fs/cgroup:ro \\
