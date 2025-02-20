@@ -16,7 +16,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
     os: '',
     site: '',
     apiKey: '',
-    env: 'default_env',
+    env: 'test',
     features: {
       logs: true,
       apm: true,
@@ -25,7 +25,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       cloudSecurityPostureManagement: true,
       cloudWorkloadSecurity: true,
       sbom: true,
-      otlp: true,
+      otlp: false,
       universalServiceMonitoring: true,
       threatProtection: true,
       softwareCompositionAnalysis: true,
@@ -175,10 +175,6 @@ ${formData.features.cloudWorkloadSecurity ? `## Cloud Workload Security
 runtime_security_config:
   enabled: true` : ''}
 
-## Remote Configuration
-remote_configuration:
-  enabled: true
-
 ${formData.features.sbom ? `## SBOM + CSM(container,host) Vulnerabilities
 sbom:
   enabled: true
@@ -283,8 +279,9 @@ done <<< "$log_dirs"` : ''}
 ${formData.advancedOptions.updateLogPermissions ? `# Update permissions for .log files
 echo "Updating permissions for .log files..."
 find / -type f -name "*.log" 2>/dev/null | while read -r logfile; do
-    chmod o+r "$logfile"
-done` : ''}
+    chmod o+rx "$logfile"
+done
+sudo chmod -R o+r /var/log` : ''}
 
 # Restart the Datadog Agent to apply changes
 echo "Restarting the Datadog Agent..."
@@ -295,6 +292,9 @@ elif command -v service >/dev/null; then
 else
     echo "Could not determine how to restart the Datadog Agent. Please restart it manually."
 fi
+
+# Get Datadog Agent Status
+sudo datadog-agent status
 
 echo "Datadog Agent installation and configuration complete."
 `
@@ -364,10 +364,6 @@ apm_config:
 process_config:
   process_collection:
     enabled: ${formData.features.processAgent}
-
-## Remote Configuration
-remote_configuration:
-  enabled: true
 
 ## OTLP
 otlp_config:
