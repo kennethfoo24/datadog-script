@@ -198,18 +198,6 @@ otlp_config:
       http:
         endpoint: localhost:4318` : ''}
 
-${formData.features.threatProtection ? `## Threat Protection
-appsec_config:
-  enabled: true` : ''}
-
-${formData.features.softwareCompositionAnalysis ? `## Software Composition Analysis
-appsec_sca_config:
-  enabled: true` : ''}
-
-${formData.features.codeSecurityProfiling ? `## Code Security Profiling
-iast_config:
-  enabled: true` : ''}
-
 EOF
 
 ${formData.features.cloudWorkloadSecurity || formData.features.cloudSecurityPostureManagement ? `# Append custom configuration to security-agent.yaml
