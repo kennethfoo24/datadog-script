@@ -109,10 +109,9 @@ export function EnhancedDatadogScriptGeneratorComponent() {
         : ''
 
       const script = `
-
+#!/bin/bash
 # This is an unofficial Datadog Agent Installation Script
 # This is not affiliated with Datadog, please reach out to your Datadog account manager if you have any issues.
-#!/bin/bash
 
 set -x
 
