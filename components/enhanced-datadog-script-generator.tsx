@@ -186,9 +186,7 @@ sbom:
   container_image:
     enabled: true
   host:
-    enabled: true
-container_image:
-  enabled: true` : ''}
+    enabled: true` : ''}
 
 ${formData.features.otlp ? `## OTLP
 otlp_config:
