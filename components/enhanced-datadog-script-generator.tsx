@@ -582,7 +582,7 @@ echo "You can view the logs by running: docker logs dd-agent"
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text)
+      await navigator.clipboard.writeText(generatedScript)
       // Optionally show a notification that copy was successful
       console.log('Copied successfully!')
     } catch (error) {
