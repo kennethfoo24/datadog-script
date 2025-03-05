@@ -578,11 +578,13 @@ echo "You can view the logs by running: docker logs dd-agent"
     }
   }
 
-  const copyToClipboard = (ref: React.RefObject<HTMLTextAreaElement>) => {
-    if (ref.current) {
-      ref.current.select()
-      document.execCommand('copy')
-      // Optionally, you can show a tooltip or notification here to indicate successful copy
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      // Optionally show a notification that copy was successful
+      console.log('Copied successfully!')
+    } catch (error) {
+      console.error('Failed to copy text:', error)
     }
   }
 
@@ -866,7 +868,7 @@ echo "You can view the logs by running: docker logs dd-agent"
             variant="outline"
             size="icon"
             className="absolute top-8 right-2 z-10"
-            onClick={() => copyToClipboard(scriptRef)}
+            onClick={() => copyToClipboard(generatedScript)}
             aria-label="Copy generated script"
           >
             <Copy className="h-4 w-4" />
