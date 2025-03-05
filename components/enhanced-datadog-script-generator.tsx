@@ -109,7 +109,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
         : ''
 
       const script = `
-
+#
 
 
 
