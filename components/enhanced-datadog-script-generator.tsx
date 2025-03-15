@@ -907,7 +907,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
               <>
                 <li>Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
                 <li>Paste the copied script into the text editor.</li>
-                <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g., {formData.os === 'linux' ? 'datadog.sh'  : 'datadog.ps1'}).</li>
+                <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g. {formData.os === 'linux' ? 'datadog.sh'  : 'datadog.ps1'}).</li>
                 <li>Open a {formData.os === 'linux' ? 'terminal' : 'PowerShell window'} on your machine.</li>
                 <li>Navigate to the directory where you saved the script using the cd command.</li>
                 {formData.os === 'linux' ? (
