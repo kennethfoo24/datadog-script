@@ -690,7 +690,7 @@ echo "You can view the logs by running: docker logs dd-agent"
                         />
                         <FeatureCheckbox
                           id="apm-js"
-                          label="JavaScript"
+                          label="NodeJS"
                           checked={formData.apmInstrumentationLanguages.js}
                           onCheckedChange={() => handleApmLanguageToggle('js')}
                           docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs/"
