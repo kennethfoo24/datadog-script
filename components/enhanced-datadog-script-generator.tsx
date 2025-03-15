@@ -926,6 +926,8 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                     </>
                   )}
                 </div>
+                </>
+              )}
               </>
             )}
           </div>
