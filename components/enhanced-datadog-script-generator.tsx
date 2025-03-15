@@ -899,24 +899,24 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
             {formData.os === 'docker' ? (
               <>
                 <li>Open a terminal on your Docker host machine.</li>
-                <li>Paste the copied script into a new file, for example, <code>datadog_install.sh</code>.</li>
-                <li>Make the script executable by running: <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog_install.sh</pre></li>
-                <li>Execute the script with: <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog_install.sh</pre></li>
+                <li>Paste the copied script into a new file, for example, <code>datadog.sh</code>.</li>
+                <li>Make the script executable by running: <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog.sh</pre></li>
+                <li>Execute the script with: <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog.sh</pre></li>
               </>
             ) : (
               <>
                 <li>Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
                 <li>Paste the copied script into the text editor.</li>
-                <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g., {formData.os === 'linux' ? 'datadog_install.sh'  : 'datadog_install.ps1'}).</li>
+                <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g., {formData.os === 'linux' ? 'datadog.sh'  : 'datadog_install.ps1'}).</li>
                 <li>Open a {formData.os === 'linux' ? 'terminal' : 'PowerShell window'} on your machine.</li>
                 <li>Navigate to the directory where you saved the script using the cd command.</li>
                 {formData.os === 'linux' ? (
                   <>
                     <li>Make the script executable by running the following command:
-                      <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog_install.sh</pre>
+                      <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog.sh</pre>
                     </li>
                     <li>Execute the script with root privileges using sudo:
-                      <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog_install.sh</pre>
+                      <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog.sh</pre>
                     </li>
                   </>
                 ) : (
