@@ -670,7 +670,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
           <div className="space-y-6">
             <h2 className="text-xl font-semibold">Additional Configuration</h2>
             <div>
-              <Label htmlFor="env">Environment Name (eg: prod, stg, dev)</Label>
+              <Label htmlFor="env">Environment Name (eg: production, staging, development, poc)</Label>
               <Input type="text" id="env" name="env" value={formData.env} onChange={handleInputChange} placeholder="Enter the environment" />
             </div>
             <div className="space-y-4">
