@@ -796,7 +796,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                 <div className="grid grid-cols-2 gap-2 mt-2">
                   <FeatureCheckbox
                     id="otlp"
-                    label="OTLP"
+                    label="OpenTelemetry Protocol OTLP"
                     checked={formData.features.otlp}
                     onCheckedChange={() => handleFeatureToggle('otlp')}
                     docLink="https://docs.datadoghq.com/opentelemetry/"
