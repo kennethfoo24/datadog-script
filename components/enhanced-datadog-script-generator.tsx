@@ -50,6 +50,23 @@ export function EnhancedDatadogScriptGeneratorComponent() {
   const [generatedScript, setGeneratedScript] = useState('')
   const scriptRef = useRef<HTMLTextAreaElement>(null)
 
+  const getKubernetesUrl = () => {
+    switch (formData.site) {
+      case 'datadoghq.com':
+        return 'https://app.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
+      case 'us3.datadoghq.com':
+        return 'https://us3.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
+      case 'us5.datadoghq.com':
+        return 'https://us5.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
+      case 'datadoghq.eu':
+        return 'https://app.datadoghq.eu/account/settings/agent/latest?platform=kubernetes'
+      case 'ap1.datadoghq.com':
+        return 'https://ap1.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
+      default:
+        return 'https://app.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -88,10 +105,17 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       alert("Please select a Datadog site.")
       return
     }
-    if (step === 3 && !formData.apiKey) {
+
+        // If Kubernetes is selected and we're moving past site selection
+        if (formData.os === 'kubernetes' && step === 2) {
+          window.open(getKubernetesUrl(), '_blank')
+        }
+    
+    if (step === 3 && !formData.apiKey && formData.os !== 'kubernetes') {
       alert("Please enter your API key.")
       return
     }
+
     setStep(step + 1)
   }
 
@@ -626,6 +650,10 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                 <RadioGroupItem value="docker" id="os-docker" />
                 <Label htmlFor="os-docker">Docker</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="kubernetes" id="os-kubernetes" />
+                <Label htmlFor="os-kubernetes">Kubernetes</Label>
+              </div>
             </RadioGroup>
           </div>
         )
@@ -646,12 +674,51 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                 <SelectItem value="ap1.datadoghq.com">AP1 (ap1.datadoghq.com)</SelectItem>
               </SelectContent>
             </Select>
+            {formData.os === 'kubernetes' && formData.site && (
+              <div className="mt-4 p-4 border rounded-md bg-blue-50">
+                <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
+                <p>For Kubernetes installation, you'll be redirected to the official Datadog website with your selected site.</p>
+                <p className="mt-2">After clicking "Next", you'll be taken to:</p>
+                <a 
+                  href={getKubernetesUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center mt-2 text-primary hover:underline"
+                >
+                  {getKubernetesUrl()}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+              </div>
+            )}
           </div>
         )
       case 3:
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Step 3: Enter API Key</h2>
+            {formData.os === 'kubernetes' ? (
+              <div className="p-4 border rounded-md bg-blue-50">
+                <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
+                <p>Please follow the instructions on the Datadog website that opened in a new tab.</p>
+                <p className="mt-2">If you need to access the page again, you can visit:</p>
+                <a 
+                  href={getKubernetesUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center mt-2 text-primary hover:underline"
+                >
+                  {getKubernetesUrl()}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+                <Button 
+                  type="button" 
+                  className="mt-4" 
+                  onClick={() => window.open(getKubernetesUrl(), '_blank')}
+                >
+                  Open Kubernetes Installation Guide
+                </Button>
+              </div>
+            ) : (
             <div>
               <Label htmlFor="apiKey">API Key</Label>
               <Input
@@ -663,11 +730,36 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                 placeholder="Enter your Datadog API key"
               />
             </div>
+          )}
           </div>
         )
       default:
         return (
           <div className="space-y-6">
+            {formData.os === 'kubernetes' ? (
+              <div className="p-4 border rounded-md bg-blue-50">
+                <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
+                <p>Please follow the instructions on the Datadog website that opened in a new tab.</p>
+                <p className="mt-2">If you need to access the page again, you can visit:</p>
+                <a 
+                  href={getKubernetesUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center mt-2 text-primary hover:underline"
+                >
+                  {getKubernetesUrl()}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+                <Button 
+                  type="button" 
+                  className="mt-4" 
+                  onClick={() => window.open(getKubernetesUrl(), '_blank')}
+                >
+                  Open Kubernetes Installation Guide
+                </Button>
+              </div>
+            ) : (
+              <>
             <h2 className="text-xl font-semibold">Additional Configuration</h2>
             <div>
               <Label htmlFor="env">Environment Name (eg: production, staging, development, poc)</Label>
@@ -869,13 +961,17 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
               Next
             </Button>
           ) : (
-            <Button type="button" onClick={generateScript}>
+            <Button 
+              type="button" 
+              onClick={generateScript}
+              disabled={formData.os === 'kubernetes'}
+            >
               Generate Script
             </Button>
           )}
         </div>
       </form>
-      {generatedScript && (
+      {generatedScript && formData.os !== 'kubernetes' && (
         <div className="mt-8 relative">
           <h2 className="text-xl font-bold mb-2">Generated Installation Script</h2>
           <Button
@@ -891,7 +987,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
           <Textarea ref={scriptRef} value={generatedScript} readOnly className="h-96 font-mono text-sm pr-10" />
         </div>
       )}
-      {generatedScript && (
+      {generatedScript && formData.os !== 'kubernetes' && (
         <div className="mt-8">
           <h2 className="text-xl font-bold mb-2">How to Execute the Script</h2>
           <ol className="list-decimal list-inside space-y-2">
