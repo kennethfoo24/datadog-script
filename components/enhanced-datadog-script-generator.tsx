@@ -282,8 +282,10 @@ sudo chmod -R o+r /var/log` : ''}
 echo "Restarting the Datadog Agent..."
 if command -v systemctl >/dev/null; then
     sudo systemctl restart datadog-agent
+    echo "Restarting the Datadog Agent with... sudo systemctl restart datadog-agent"
 elif command -v service >/dev/null; then
     sudo service datadog-agent restart
+    echo "Restarting the Datadog Agent with... sudo service datadog-agent restart"
 else
     echo "Could not determine how to restart the Datadog Agent. Please restart it manually."
 fi
@@ -292,6 +294,11 @@ fi
 sudo datadog-agent status
 
 echo "Datadog Agent installation and configuration complete."
+
+echo "Restart Datadig Agent with command... sudo systemctl restart datadog-agent or sudo service datadog-agent restart"
+echo "Get Datadog Agent Status with command... sudo systemctl restart datadog-agent"
+echo "PLEASE RESTART THE DATADOG AGENT AND YOUR APPLICATION SERVICE TO SEE DATA!"
+
 `
 
       setGeneratedScript(script)
@@ -501,6 +508,10 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
 
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" launch-gui
+
+Write-Host "Restart the Datadog Agent Service with... & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" restart-service"
+Write-Host "Status of Datadog Agent Service with... & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" status"
+Write-Host "GUI of Datadog Agent Service with... & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" launch-gui"
 `
 
       setGeneratedScript(script)
@@ -571,8 +582,11 @@ ${formData.features.otlp ? `-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0
 --cap-add=CHOWN \\
 gcr.io/datadoghq/agent:7
 
+
 echo "Datadog Agent Docker container started. Please check the container logs for any issues."
-echo "You can view the logs by running: docker logs dd-agent"
+echo "You can view the logs by running: sudo docker logs dd-agent"
+echo "You can view the status by running: sudo docker exec -it dd-agent agent status"
+echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
 `
 
       setGeneratedScript(script)
