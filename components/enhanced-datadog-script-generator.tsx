@@ -752,7 +752,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                     label="Universal Service Monitoring"
                     checked={formData.features.universalServiceMonitoring}
                     onCheckedChange={() => handleFeatureToggle('universalServiceMonitoring')}
-                    docLink="https://docs.datadoghq.com/service_monitoring/"
+                    docLink="https://docs.datadoghq.com/universal_service_monitoring/"
                   />
                 </div>
               </div>
