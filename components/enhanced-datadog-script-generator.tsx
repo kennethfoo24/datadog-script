@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Copy, ExternalLink } from 'lucide-react'
+import { Card, CardContent } from "@/components/ui/card"
+import { Copy, ExternalLink, Server, Monitor, DockIcon as Docker, Cloud, CheckCircle2, AlertCircle, Terminal, FileCode, ChevronRight, ChevronLeft, Cpu, Network, Shield, Activity, Code } from 'lucide-react'
 
 export function EnhancedDatadogScriptGeneratorComponent() {
   const [step, setStep] = useState(1)
