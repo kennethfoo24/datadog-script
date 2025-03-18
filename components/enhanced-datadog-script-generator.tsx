@@ -1,6 +1,7 @@
+
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Card, CardContent } from "@/components/ui/card"
-import { Copy, ExternalLink, Server, Monitor, DockIcon as Docker, Cloud, CheckCircle2, AlertCircle, Terminal, FileCode, ChevronRight, ChevronLeft, Cpu, Network, Shield, Activity, Code } from 'lucide-react'
+import { Copy, ExternalLink } from 'lucide-react'
 
 export function EnhancedDatadogScriptGeneratorComponent() {
   const [step, setStep] = useState(1)
@@ -49,17 +49,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
   })
 
   const [generatedScript, setGeneratedScript] = useState('')
-  const [copySuccess, setCopySuccess] = useState(false)
   const scriptRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    if (copySuccess) {
-      const timer = setTimeout(() => {
-        setCopySuccess(false)
-      }, 2000)
-      return () => clearTimeout(timer)
-    }
-  }, [copySuccess])
 
   const getKubernetesUrl = () => {
     switch (formData.site) {
@@ -307,6 +297,7 @@ EOF
 done <<< "$log_dirs"` : ''}
 
 ${formData.advancedOptions.updateLogPermissions ? `# Update permissions for .log files
+#    Set default ACLs so existing files/dirs inherit dd-agent's rx permissions:
 echo "Setting ACLs for dd-agent on /var/log..."
 sudo setfacl -Rm u:dd-agent:rx /var/log
 
@@ -535,7 +526,6 @@ logs:
 # Write the content to the iis.d/conf.yaml file
 $iisYamlContent | Set-Content -Path $iisLogConfigFile -Encoding UTF8
 ` : ''}
-
 # Step 5: Restart the Datadog Agent Service
 Write-Host "Restarting Datadog Agent Service"
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" restart-service
@@ -619,6 +609,7 @@ ${formData.features.otlp ? `-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0
 --cap-add=CHOWN \\
 gcr.io/datadoghq/agent:7
 
+
 echo "Datadog Agent Docker container started. Please check the container logs for any issues."
 echo "You can view the logs by running: sudo docker logs dd-agent"
 echo "You can view the status by running: sudo docker exec -it dd-agent agent status"
@@ -629,32 +620,13 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
     }
   }
 
-  const copyToClipboard = async () => {
-    if (scriptRef.current) {
-      try {
-        await navigator.clipboard.writeText(scriptRef.current.value)
-        setCopySuccess(true)
-      } catch (err) {
-        // Fallback for older browsers
-        scriptRef.current.select()
-        document.execCommand('copy')
-        setCopySuccess(true)
-      }
-    }
-  }
-
-  const getPlatformIcon = (platform: string) => {
-    switch (platform) {
-      case 'linux':
-        return <Server className="h-8 w-8 mb-2" />
-      case 'windows':
-        return <Monitor className="h-8 w-8 mb-2" />
-      case 'docker':
-        return <Docker className="h-8 w-8 mb-2" />
-      case 'kubernetes':
-        return <Cloud className="h-8 w-8 mb-2" />
-      default:
-        return null
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(generatedScript)
+      // Optionally show a notification that copy was successful
+      console.log('Copied successfully!')
+    } catch (error) {
+      console.error('Failed to copy text:', error)
     }
   }
 
@@ -662,673 +634,448 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
     switch (step) {
       case 1:
         return (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Select Platform</h2>
-            <p className="text-gray-500">Choose the platform where you'll install the Datadog Agent</p>
-            
-            <div className="grid grid-cols-2 gap-4 mt-6">
-              {['linux', 'windows', 'docker', 'kubernetes'].map((platform) => (
-                <Card 
-                  key={platform}
-                  className={`cursor-pointer transition-all hover:shadow-md ${formData.os === platform ? 'border-primary ring-2 ring-primary/20' : 'hover:border-gray-300'}`}
-                  onClick={() => setFormData((prev) => ({ ...prev, os: platform }))}
-                >
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    {getPlatformIcon(platform)}
-                    <h3 className="text-lg font-medium capitalize">{platform}</h3>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Step 1: Select Platform</h2>
+            <RadioGroup
+              value={formData.os}
+              onValueChange={(value) => setFormData((prev) => ({ ...prev, os: value }))}
+              className="flex flex-col space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="linux" id="os-linux" />
+                <Label htmlFor="os-linux">Linux</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="windows" id="os-windows" />
+                <Label htmlFor="os-windows">Windows</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="docker" id="os-docker" />
+                <Label htmlFor="os-docker">Docker</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="kubernetes" id="os-kubernetes" />
+                <Label htmlFor="os-kubernetes">Kubernetes</Label>
+              </div>
+            </RadioGroup>
           </div>
         )
-        case 2:
-            return (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Select Datadog Site</h2>
-                <p className="text-gray-500">Choose the Datadog site that corresponds to your account</p>
-                
-                <div className="mt-4">
-                  <Select value={formData.site} onValueChange={(value) => setFormData((prev) => ({ ...prev, site: value }))}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select Datadog site" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="datadoghq.com">US1 (datadoghq.com)</SelectItem>
-                      <SelectItem value="us3.datadoghq.com">US3 (us3.datadoghq.com)</SelectItem>
-                      <SelectItem value="us5.datadoghq.com">US5 (us5.datadoghq.com)</SelectItem>
-                      <SelectItem value="datadoghq.eu">EU1 (datadoghq.eu)</SelectItem>
-                      <SelectItem value="ddog-gov.com">US1-FED (ddog-gov.com)</SelectItem>
-                      <SelectItem value="ap1.datadoghq.com">AP1 (ap1.datadoghq.com)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                {formData.os === 'kubernetes' && formData.site && (
-                  <div className="mt-6 p-6 border rounded-lg bg-blue-50 shadow-sm">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0 mt-1">
-                        <AlertCircle className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-lg font-medium text-blue-800 mb-2">Kubernetes Installation</h3>
-                        <p className="text-blue-700 mb-2">For Kubernetes installation, you'll be redirected to the official Datadog documentation with your selected site.</p>
-                        <p className="text-blue-700 mb-3">After clicking "Next", you'll be taken to:</p>
-                        <a 
-                          href={getKubernetesUrl()} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex items-center text-blue-600 hover:text-blue-800 hover:underline font-medium"
-                        >
-                          {getKubernetesUrl()}
-                          <ExternalLink className="ml-1 h-4 w-4" />
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                )}
+      case 2:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Step 2: Select Datadog Site</h2>
+            <Select value={formData.site} onValueChange={(value) => setFormData((prev) => ({ ...prev, site: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select Datadog site" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="datadoghq.com">US1 (datadoghq.com)</SelectItem>
+                <SelectItem value="us3.datadoghq.com">US3 (us3.datadoghq.com)</SelectItem>
+                <SelectItem value="us5.datadoghq.com">US5 (us5.datadoghq.com)</SelectItem>
+                <SelectItem value="datadoghq.eu">EU1 (datadoghq.eu)</SelectItem>
+                <SelectItem value="ddog-gov.com">US1-FED (ddog-gov.com)</SelectItem>
+                <SelectItem value="ap1.datadoghq.com">AP1 (ap1.datadoghq.com)</SelectItem>
+              </SelectContent>
+            </Select>
+            {formData.os === 'kubernetes' && formData.site && (
+              <div className="mt-4 p-4 border rounded-md bg-blue-50">
+                <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
+                <p>For Kubernetes installation, you'll be redirected to the official Datadog website with your selected site.</p>
+                <p className="mt-2">After clicking "Next", you'll be taken to:</p>
+                <a 
+                  href={getKubernetesUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center mt-2 text-primary hover:underline"
+                >
+                  {getKubernetesUrl()}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
               </div>
-            )
-          case 3:
-            return (
-              <div className="space-y-6">
-                <h2 className="text-2xl font-semibold">Enter API Key</h2>
-                {formData.os === 'kubernetes' ? (
-                  <div className="p-6 border rounded-lg bg-blue-50 shadow-sm">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0 mt-1">
-                        <AlertCircle className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-lg font-medium text-blue-800 mb-2">Kubernetes Installation</h3>
-                        <p className="text-blue-700 mb-3">Please follow the instructions on the Datadog website that opened in a new tab.</p>
-                        <p className="text-blue-700 mb-3">If you need to access the page again, you can visit:</p>
-                        <a 
-                          href={getKubernetesUrl()} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex items-center text-blue-600 hover:text-blue-800 hover:underline font-medium mb-4"
-                        >
-                          {getKubernetesUrl()}
-                          <ExternalLink className="ml-1 h-4 w-4" />
-                        </a>
-                        <Button 
-                          type="button" 
-                          className="mt-2 flex items-center" 
-                          onClick={() => window.open(getKubernetesUrl(), '_blank')}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Open Kubernetes Installation Guide
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-gray-500">Enter your Datadog API key to authenticate the agent</p>
-                    <div className="space-y-2">
-                      <Label htmlFor="apiKey" className="text-sm font-medium">API Key</Label>
-                      <div className="relative">
-                        <Input
-                          type="text"
-                          id="apiKey"
-                          name="apiKey"
-                          value={formData.apiKey}
-                          onChange={handleInputChange}
-                          placeholder="Enter your Datadog API key"
-                          className="pr-10"
+            )}
+          </div>
+        )
+      case 3:
+        return (
+          <div className="space-y-4">
+            <h2 className="text-xl font-semibold">Step 3: Enter API Key</h2>
+            {formData.os === 'kubernetes' ? (
+              <div className="p-4 border rounded-md bg-blue-50">
+                <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
+                <p>Please follow the instructions on the Datadog website that opened in a new tab.</p>
+                <p className="mt-2">If you need to access the page again, you can visit:</p>
+                <a 
+                  href={getKubernetesUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center mt-2 text-primary hover:underline"
+                >
+                  {getKubernetesUrl()}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+                <Button 
+                  type="button" 
+                  className="mt-4" 
+                  onClick={() => window.open(getKubernetesUrl(), '_blank')}
+                >
+                  Open Kubernetes Installation Guide
+                </Button>
+              </div>
+            ) : (
+            <div>
+              <Label htmlFor="apiKey">API Key</Label>
+              <Input
+                type="text"
+                id="apiKey"
+                name="apiKey"
+                value={formData.apiKey}
+                onChange={handleInputChange}
+                placeholder="Enter your Datadog API key"
+              />
+            </div>
+          )}
+          </div>
+        )
+      default:
+        return (
+          <div className="space-y-6">
+            {formData.os === 'kubernetes' ? (
+              <div className="p-4 border rounded-md bg-blue-50">
+                <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
+                <p>Please follow the instructions on the Datadog website that opened in a new tab.</p>
+                <p className="mt-2">If you need to access the page again, you can visit:</p>
+                <a 
+                  href={getKubernetesUrl()} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center mt-2 text-primary hover:underline"
+                >
+                  {getKubernetesUrl()}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+                <Button 
+                  type="button" 
+                  className="mt-4" 
+                  onClick={() => window.open(getKubernetesUrl(), '_blank')}
+                >
+                  Open Kubernetes Installation Guide
+                </Button>
+              </div>
+            ) : (
+              <>
+            <h2 className="text-xl font-semibold">Additional Configuration</h2>
+            <div>
+              <Label htmlFor="env">Environment Name (eg: production, staging, development, poc)</Label>
+              <Input type="text" id="env" name="env" value={formData.env} onChange={handleInputChange} placeholder="Enter the environment" />
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-lg font-semibold">Monitoring Features</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <FeatureCheckbox
+                    id="logs"
+                    label="Logs"
+                    checked={formData.features.logs}
+                    onCheckedChange={() => handleFeatureToggle('logs')}
+                    docLink="https://docs.datadoghq.com/logs/"
+                  />
+                  <FeatureCheckbox
+                    id="apm"
+                    label="APM"
+                    checked={formData.features.apm}
+                    onCheckedChange={() => handleFeatureToggle('apm')}
+                    docLink="https://docs.datadoghq.com/tracing/"
+                  />
+                  {formData.features.apm && formData.os === 'linux' && (
+                    <div className="col-span-2 ml-6 space-y-2">
+                      <Label className="text-sm font-semibold">APM Instrumentation Languages</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <FeatureCheckbox
+                          id="apm-java"
+                          label="Java"
+                          checked={formData.apmInstrumentationLanguages.java}
+                          onCheckedChange={() => handleApmLanguageToggle('java')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/java/"
                         />
-                        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                          <FileCode className="h-4 w-4 text-gray-400" />
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        You can find your API key in the <a href={`https://${formData.site || 'app.datadoghq.com'}/organization-settings/api-keys`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Datadog API Keys</a> section.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          default:
-            return (
-              <div className="space-y-6">
-                {formData.os === 'kubernetes' ? (
-                  <div className="p-6 border rounded-lg bg-blue-50 shadow-sm">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0 mt-1">
-                        <AlertCircle className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-lg font-medium text-blue-800 mb-2">Kubernetes Installation</h3>
-                        <p className="text-blue-700 mb-3">Please follow the instructions on the Datadog website that opened in a new tab.</p>
-                        <p className="text-blue-700 mb-3">If you need to access the page again, you can visit:</p>
-                        <a 
-                          href={getKubernetesUrl()} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className="flex items-center text-blue-600 hover:text-blue-800 hover:underline font-medium mb-4"
-                        >
-                          {getKubernetesUrl()}
-                          <ExternalLink className="ml-1 h-4 w-4" />
-                        </a>
-                        <Button 
-                          type="button" 
-                          className="mt-2 flex items-center" 
-                          onClick={() => window.open(getKubernetesUrl(), '_blank')}
-                        >
-                          <ExternalLink className="mr-2 h-4 w-4" />
-                          Open Kubernetes Installation Guide
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <h2 className="text-2xl font-semibold">Additional Configuration</h2>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="env" className="text-sm font-medium">Environment Name</Label>
-                        <div className="relative mt-1">
-                          <Input 
-                            type="text" 
-                            id="env" 
-                            name="env" 
-                            value={formData.env} 
-                            onChange={handleInputChange} 
-                            placeholder="e.g., production, staging, development"
-                            className="pr-10"
-                          />
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                            <Code className="h-4 w-4 text-gray-400" />
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          This will be used to tag your metrics and logs
-                        </p>
-                      </div>
-                      
-                      <Card className="mt-6">
-                        <CardContent className="p-6">
-                          <h3 className="text-lg font-medium flex items-center mb-4">
-                            <Activity className="h-5 w-5 mr-2 text-primary" />
-                            Monitoring Features
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <FeatureCheckbox
-                              id="logs"
-                              label="Logs"
-                              checked={formData.features.logs}
-                              onCheckedChange={() => handleFeatureToggle('logs')}
-                              docLink="https://docs.datadoghq.com/logs/"
-                              icon={<FileCode className="h-4 w-4 text-gray-600" />}
-                            />
-                            <FeatureCheckbox
-                              id="apm"
-                              label="APM"
-                              checked={formData.features.apm}
-                              onCheckedChange={() => handleFeatureToggle('apm')}
-                              docLink="https://docs.datadoghq.com/tracing/"
-                              icon={<Activity className="h-4 w-4 text-gray-600" />}
-                            />
-                            {formData.features.apm && formData.os === 'linux' && (
-                              <div className="col-span-1 md:col-span-2 ml-6 mt-2 p-3 bg-gray-50 rounded-md border">
-                                <Label className="text-sm font-medium mb-2 block">APM Instrumentation Languages</Label>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                  <FeatureCheckbox
-                                    id="apm-java"
-                                    label="Java"
-                                    checked={formData.apmInstrumentationLanguages.java}
-                                    onCheckedChange={() => handleApmLanguageToggle('java')}
-                                    docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/java/"
-                                    icon={<Code className="h-4 w-4 text-gray-600" />}
-                                  />
-                                  <FeatureCheckbox
-                                    id="apm-js"
-                                    label="JavaScript"
-                                    checked={formData.apmInstrumentationLanguages.js}
-                                    onCheckedChange={() => handleApmLanguageToggle('js')}
-                                    docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs/"
-                                    icon={<Code className="h-4 w-4 text-gray-600" />}
-                                  />
-                                  <FeatureCheckbox
-                                    id="apm-python"
-                                    label="Python"
-                                    checked={formData.apmInstrumentationLanguages.python}
-                                    onCheckedChange={() => handleApmLanguageToggle('python')}
-                                    docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/python/"
-                                    icon={<Code className="h-4 w-4 text-gray-600" />}
-                                  />
-                                  <FeatureCheckbox
-                                    id="apm-dotnet"
-                                    label=".NET"
-                                    checked={formData.apmInstrumentationLanguages.dotnet}
-                                    onCheckedChange={() => handleApmLanguageToggle('dotnet')}
-                                    docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet/"
-                                    icon={<Code className="h-4 w-4 text-gray-600" />}
-                                  />
-                                  <FeatureCheckbox
-                                    id="apm-ruby"
-                                    label="Ruby"
-                                    checked={formData.apmInstrumentationLanguages.ruby}
-                                    onCheckedChange={() => handleApmLanguageToggle('ruby')}
-                                    docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/"
-                                    icon={<Code className="h-4 w-4 text-gray-600" />}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                            <FeatureCheckbox
-                              id="processAgent"
-                              label="Process Monitoring"
-                              checked={formData.features.processAgent}
-                              onCheckedChange={() => handleFeatureToggle('processAgent')}
-                              docLink="https://docs.datadoghq.com/infrastructure/process/"
-                              icon={<Cpu className="h-4 w-4 text-gray-600" />}
-                            />
-                            <FeatureCheckbox
-                              id="networkMonitoring"
-                              label="Network Monitoring"
-                              checked={formData.features.networkMonitoring}
-                              onCheckedChange={() => handleFeatureToggle('networkMonitoring')}
-                              docLink="https://docs.datadoghq.com/network_monitoring/"
-                              icon={<Network className="h-4 w-4 text-gray-600" />}
-                            />
-                            <FeatureCheckbox
-                              id="universalServiceMonitoring"
-                              label="Universal Service Monitoring"
-                              checked={formData.features.universalServiceMonitoring}
-                              onCheckedChange={() => handleFeatureToggle('universalServiceMonitoring')}
-                              docLink="https://docs.datadoghq.com/service_monitoring/"
-                              icon={<Activity className="h-4 w-4 text-gray-600" />}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-    
-                      <Card className="mt-4">
-                        <CardContent className="p-6">
-                          <h3 className="text-lg font-medium flex items-center mb-4">
-                            <Shield className="h-5 w-5 mr-2 text-primary" />
-                            Security Features
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <FeatureCheckbox
-                              id="cloudSecurity"
-                              label="Cloud Security"
-                              checked={formData.features.cloudSecurityPostureManagement || 
-                                      formData.features.cloudWorkloadSecurity || 
-                                      formData.features.containerHostVulnerabilityManagement || 
-                                      formData.features.sbom}
-                              onCheckedChange={() => {
-                                handleFeatureToggle('cloudSecurityPostureManagement')
-                                handleFeatureToggle('cloudWorkloadSecurity')
-                                handleFeatureToggle('containerHostVulnerabilityManagement')
-                                handleFeatureToggle('sbom')
-                              }}
-                              docLink="https://docs.datadoghq.com/security/cloud_security_management"
-                              icon={<Cloud className="h-4 w-4 text-gray-600" />}
-                            />
-                            <FeatureCheckbox
-                              id="applicationSecurity"
-                              label="Application Security"
-                              checked={formData.features.threatProtection || 
-                                      formData.features.softwareCompositionAnalysis || 
-                                      formData.features.codeSecurityProfiling}
-                              onCheckedChange={() => {
-                                handleFeatureToggle('threatProtection')
-                                handleFeatureToggle('softwareCompositionAnalysis')
-                                handleFeatureToggle('codeSecurityProfiling')
-                              }}
-                              docLink="https://docs.datadoghq.com/security/application_security/"
-                              icon={<Shield className="h-4 w-4 text-gray-600" />}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-    
-                      <Card className="mt-4">
-                        <CardContent className="p-6">
-                          <h3 className="text-lg font-medium flex items-center mb-4">
-                            <Code className="h-5 w-5 mr-2 text-primary" />
-                            Other Features
-                          </h3>
-                          <div className="grid grid-cols-1 gap-3">
-                            <FeatureCheckbox
-                              id="otlp"
-                              label="OpenTelemetry Protocol (OTLP)"
-                              checked={formData.features.otlp}
-                              onCheckedChange={() => handleFeatureToggle('otlp')}
-                              docLink="https://docs.datadoghq.com/opentelemetry/"
-                              icon={<Code className="h-4 w-4 text-gray-600" />}
-                            />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                    
-                    {formData.os !== 'docker' && (
-                      <Card className="mt-6">
-                        <CardContent className="p-6">
-                          <h3 className="text-lg font-medium flex items-center mb-4">
-                            <Terminal className="h-5 w-5 mr-2 text-primary" />
-                            Advanced Options
-                          </h3>
-                          <div className="space-y-3">
-                            {formData.os === 'linux' && (
-                              <>
-                                <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
-                                  <Checkbox 
-                                    id="collectAllLogs" 
-                                    checked={formData.advancedOptions.collectAllLogs} 
-                                    onCheckedChange={() => handleAdvancedOptionToggle('collectAllLogs')} 
-                                  />
-                                  <Label htmlFor="collectAllLogs" className="cursor-pointer">Collect All Logs</Label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
-                                  <Checkbox 
-                                    id="updateLogPermissions" 
-                                    checked={formData.advancedOptions.updateLogPermissions} 
-                                    onCheckedChange={() => handleAdvancedOptionToggle('updateLogPermissions')} 
-                                  />
-                                  <Label htmlFor="updateLogPermissions" className="cursor-pointer">Update Log Permissions</Label>
-                                </div>
-                              </>
-                            )}
-                            {formData.os === 'windows' && (
-                              <>
-                                <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
-                                  <Checkbox 
-                                    id="collectIISLogs" 
-                                    checked={formData.advancedOptions.collectIISLogs} 
-                                    onCheckedChange={() => handleAdvancedOptionToggle('collectIISLogs')} 
-                                  />
-                                  <Label htmlFor="collectIISLogs" className="cursor-pointer">Collect IIS Logs</Label>
-                                </div>
-                                <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md">
-                                  <Checkbox 
-                                    id="collectWindowsEventLogs" 
-                                    checked={formData.advancedOptions.collectWindowsEventLogs} 
-                                    onCheckedChange={() => handleAdvancedOptionToggle('collectWindowsEventLogs')} 
-                                  />
-                                  <Label htmlFor="collectWindowsEventLogs" className="cursor-pointer">Collect Windows Event Logs</Label>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-                  </>
-                )}
-              </div>
-            )
-        }
-      }
-    
-      return (
-        <div className="container mx-auto p-4 max-w-4xl">
-          <Card className="border-0 shadow-lg">
-            <CardContent className="p-6 md:p-8">
-              <h1 className="text-3xl font-bold mb-6 text-center">Datadog Agent Installation Script Generator</h1>
-              
-              <div className="mb-8">
-                <div className="flex items-center justify-center">
-                  {[1,2,3,4].map((s) => (
-                    <div key={s} className="flex items-center">
-                      <div 
-                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                          s === step 
-                            ? 'bg-primary text-primary-foreground shadow-md' 
-                            : s < step 
-                              ? 'bg-primary/20 text-primary' 
-                              : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {s < step ? <CheckCircle2 className="h-5 w-5" /> : s}
-                      </div>
-                      {s < 4 && (
-                        <div 
-                          className={`h-1 w-12 ${
-                            s < step 
-                              ? 'bg-primary' 
-                              : 'bg-muted'
-                          }`} 
+                        <FeatureCheckbox
+                          id="apm-js"
+                          label="NodeJS"
+                          checked={formData.apmInstrumentationLanguages.js}
+                          onCheckedChange={() => handleApmLanguageToggle('js')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/nodejs/"
                         />
-                      )}
+                        <FeatureCheckbox
+                          id="apm-python"
+                          label="Python"
+                          checked={formData.apmInstrumentationLanguages.python}
+                          onCheckedChange={() => handleApmLanguageToggle('python')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/python/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-dotnet"
+                          label=".NET"
+                          checked={formData.apmInstrumentationLanguages.dotnet}
+                          onCheckedChange={() => handleApmLanguageToggle('dotnet')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/dotnet/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-ruby"
+                          label="Ruby"
+                          checked={formData.apmInstrumentationLanguages.ruby}
+                          onCheckedChange={() => handleApmLanguageToggle('ruby')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/"
+                        />
+                      </div>
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-between mt-2 text-sm text-gray-500">
-                  <span>Platform</span>
-                  <span>Site</span>
-                  <span>API Key</span>
-                  <span>Configure</span>
-                </div>
-              </div>
-              
-              <form className="space-y-6">
-                {renderStep()}
-                
-                <div className="flex justify-between mt-8">
-                  {step > 1 && (
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={prevStep}
-                      className="flex items-center"
-                    >
-                      <ChevronLeft className="mr-1 h-4 w-4" />
-                      Previous
-                    </Button>
                   )}
-                  <div className="flex-1"></div>
-                  {step < 4 ? (
-                    <Button 
-                      type="button" 
-                      onClick={nextStep}
-                      className="flex items-center"
-                    >
-                      Next
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button 
-                      type="button" 
-                      onClick={generateScript}
-                      disabled={formData.os === 'kubernetes'}
-                      className="flex items-center"
-                    >
-                      <FileCode className="mr-2 h-4 w-4" />
-                      Generate Script
-                    </Button>
-                  )}
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-          
-          {generatedScript && formData.os !== 'kubernetes' && (
-            <Card className="mt-8 border-0 shadow-lg overflow-hidden">
-              <CardContent className="p-0">
-                <div className="p-4 md:p-6 bg-gray-50 border-b flex justify-between items-center">
-                  <h2 className="text-xl font-bold">Generated Installation Script</h2>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={copyToClipboard}
-                    className="flex items-center"
-                    disabled={copySuccess}
-                  >
-                    {copySuccess ? (
-                      <>
-                        <CheckCircle2 className="mr-1 h-4 w-4 text-green-500" />
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="mr-1 h-4 w-4" />
-                        Copy
-                      </>
-                    )}
-                  </Button>
-                </div>
-                <div className="relative">
-                  <Textarea 
-                    ref={scriptRef} 
-                    value={generatedScript} 
-                    readOnly 
-                    className="h-96 font-mono text-sm p-4 border-0 focus-visible:ring-0 resize-none" 
+                  <FeatureCheckbox
+                    id="processAgent"
+                    label="Process Monitoring"
+                    checked={formData.features.processAgent}
+                    onCheckedChange={() => handleFeatureToggle('processAgent')}
+                    docLink="https://docs.datadoghq.com/infrastructure/process/"
+                  />
+                  <FeatureCheckbox
+                    id="networkMonitoring"
+                    label="Network Monitoring"
+                    checked={formData.features.networkMonitoring}
+                    onCheckedChange={() => handleFeatureToggle('networkMonitoring')}
+                    docLink="https://docs.datadoghq.com/network_monitoring/"
+                  />
+                  <FeatureCheckbox
+                    id="universalServiceMonitoring"
+                    label="Universal Service Monitoring"
+                    checked={formData.features.universalServiceMonitoring}
+                    onCheckedChange={() => handleFeatureToggle('universalServiceMonitoring')}
+                    docLink="https://docs.datadoghq.com/universal_service_monitoring/"
                   />
                 </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          {generatedScript && formData.os !== 'kubernetes' && (
-            <Card className="mt-8 border-0 shadow-lg">
-              <CardContent className="p-6 md:p-8">
-                <h2 className="text-2xl font-bold mb-4">How to Execute the Script</h2>
-                <ol className="list-decimal list-inside space-y-4 ml-2">
-                  <li className="text-gray-800">
-                    Copy the generated script from above.
-                    <div className="ml-6 mt-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={copyToClipboard}
-                        className="flex items-center"
-                      >
-                        <Copy className="mr-1 h-4 w-4" />
-                        Copy Script
-                      </Button>
-                    </div>
-                  </li>
-                  
-                  {formData.os === 'docker' ? (
+              </div>
+
+              <div>
+                <Label className="text-lg font-semibold">Security Features</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <FeatureCheckbox
+                    id="cloudSecurity"
+                    label="Cloud Security"
+                    checked={formData.features.cloudSecurityPostureManagement || 
+                             formData.features.cloudWorkloadSecurity || 
+                             formData.features.containerHostVulnerabilityManagement || 
+                             formData.features.sbom}
+                    onCheckedChange={() => {
+                      handleFeatureToggle('cloudSecurityPostureManagement')
+                      handleFeatureToggle('cloudWorkloadSecurity')
+                      handleFeatureToggle('containerHostVulnerabilityManagement')
+                      handleFeatureToggle('sbom')
+                    }}
+                    docLink="https://docs.datadoghq.com/security/cloud_security_management"
+                  />
+                  <FeatureCheckbox
+                    id="applicationSecurity"
+                    label="Application Security"
+                    checked={formData.features.threatProtection || 
+                             formData.features.softwareCompositionAnalysis || 
+                             formData.features.codeSecurityProfiling}
+                    onCheckedChange={() => {
+                      handleFeatureToggle('threatProtection')
+                      handleFeatureToggle('softwareCompositionAnalysis')
+                      handleFeatureToggle('codeSecurityProfiling')
+                    }}
+                    docLink="https://docs.datadoghq.com/security/application_security/"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-lg font-semibold">Other Features</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <FeatureCheckbox
+                    id="otlp"
+                    label="OpenTelemetry Protocol OTLP"
+                    checked={formData.features.otlp}
+                    onCheckedChange={() => handleFeatureToggle('otlp')}
+                    docLink="https://docs.datadoghq.com/opentelemetry/"
+                  />
+                </div>
+              </div>
+            </div>
+            {formData.os !== 'docker' && (
+              <>
+                <div className="my-6 border-t border-gray-200"></div>
+                <div className="space-y-2">
+                  <Label>Advanced Options</Label>
+                  {formData.os === 'linux' && (
                     <>
-                      <li className="text-gray-800">Open a terminal on your Docker host machine.</li>
-                      <li className="text-gray-800">
-                        Paste the copied script into a new file, for example, <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">datadog_install.sh</code>.
-                      </li>
-                      <li className="text-gray-800">
-                        Make the script executable:
-                        <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">chmod +x datadog_install.sh</pre>
-                      </li>
-                      <li className="text-gray-800">
-                        Execute the script with:
-                        <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">sudo ./datadog_install.sh</pre>
-                      </li>
-                    </>
-                  ) : (
-                    <>
-                      <li className="text-gray-800">Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
-                      <li className="text-gray-800">
-                        Paste the copied script into the text editor and save it with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g., {formData.os === 'linux' ? 'datadog_install.sh'  : 'datadog_install.ps1'}).
-                      </li>
-                      <li className="text-gray-800">
-                        Open a {formData.os === 'linux' ? 'terminal' : 'PowerShell window'} on your machine.
-                      </li>
-                      <li className="text-gray-800">
-                        Navigate to the directory where you saved the script using the cd command.
-                      </li>
-                      {formData.os === 'linux' ? (
-                        <>
-                          <li className="text-gray-800">
-                            Make the script executable:
-                            <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">chmod +x datadog_install.sh</pre>
-                          </li>
-                          <li className="text-gray-800">
-                            Execute the script with root privileges:
-                            <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">sudo ./datadog_install.sh</pre>
-                          </li>
-                        </>
-                      ) : (
-                        <li className="text-gray-800">
-                          Execute the script with administrator privileges:
-                          <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">powershell -ExecutionPolicy Bypass -File .\datadog_install.ps1</pre>
-                        </li>
-                      )}
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="collectAllLogs" checked={formData.advancedOptions.collectAllLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectAllLogs')} />
+                        <Label htmlFor="collectAllLogs">Collect All Logs</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="updateLogPermissions" checked={formData.advancedOptions.updateLogPermissions} onCheckedChange={() => handleAdvancedOptionToggle('updateLogPermissions')} />
+                        <Label htmlFor="updateLogPermissions">Update Log Permissions</Label>
+                      </div>
                     </>
                   )}
-                  <li className="text-gray-800">Follow any prompts or instructions provided by the script during execution.</li>
-                  <li className="text-gray-800">
-                    Once the script completes, verify that the Datadog Agent is running:
-                    <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">
-                      {formData.os === 'linux' ? 'sudo datadog-agent status' : formData.os === 'windows' ? '& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status' : 'sudo docker exec -it dd-agent agent status'}
-                    </pre>
-                  </li>
-                </ol>
-                
-                <div className="mt-6 p-4 border border-red-200 bg-red-50 rounded-md flex items-start">
-                  <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-                  <p className="ml-3 text-red-700 text-sm">
-                    <strong>Warning:</strong> Always review scripts before running them with elevated privileges. Ensure you trust the source and understand the actions the script will perform on your system.
-                  </p>
+                  {formData.os === 'windows' && (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="collectIISLogs" checked={formData.advancedOptions.collectIISLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectIISLogs')} />
+                        <Label htmlFor="collectIISLogs">Collect IIS Logs</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox id="collectWindowsEventLogs" checked={formData.advancedOptions.collectWindowsEventLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectWindowsEventLogs')} />
+                        <Label htmlFor="collectWindowsEventLogs">Collect Windows Event Logs</Label>
+                      </div>
+                    </>
+                  )}
                 </div>
-                
-                {formData.os === 'docker' && (
-                  <div className="mt-8">
-                    <h3 className="text-xl font-bold mb-4">Run on Docker Compose</h3>
-                    <p className="mb-4 text-gray-700">
-                      If you prefer to use Docker Compose to manage your containers, you can easily convert the Docker run command to a Docker Compose file:
-                    </p>
-                    <ol className="list-decimal list-inside space-y-3 ml-2">
-                      <li className="text-gray-800">Copy the entire Docker run command from the generated script.</li>
-                      <li className="text-gray-800">
-                        Visit <a href="https://www.composerize.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">composerize.com</a>.
-                      </li>
-                      <li className="text-gray-800">Paste the Docker run command into the input field on the Composerize website.</li>
-                      <li className="text-gray-800">Composerize will automatically convert the command into a Docker Compose YAML format.</li>
-                      <li className="text-gray-800">Copy the generated Docker Compose YAML.</li>
-                      <li className="text-gray-800">
-                        Create a new file named <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">docker-compose.yml</code> on your Docker host machine and paste the YAML content into it.
-                      </li>
-                      <li className="text-gray-800">
-                        Run the Datadog Agent using Docker Compose:
-                        <pre className="bg-gray-100 p-3 mt-2 rounded-md text-sm overflow-x-auto">docker-compose up -d</pre>
-                      </li>
-                    </ol>
-                    <p className="mt-4 text-gray-700">
-                      Using Docker Compose can make it easier to manage and update your Datadog Agent configuration, especially if you're running multiple containers or services.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </>
+              )}
+              </>
+            )}
+          </div>
+        )
+    }
+  }
+
+  return (
+    <div className="container mx-auto p-4 max-w-3xl">
+      <h1 className="text-2xl font-bold mb-4">Datadog Agent Installation Script</h1>
+      <div className="mb-4">
+        <div className="flex items-center">
+          {[1,2,3,4].map((s) => (
+            <div key={s} className="flex items-center">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${s === step ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                {s}
+              </div>
+              {s < 4 && <div className={`h-1 w-8 ${s < step ? 'bg-primary' : 'bg-muted'}`} />}
+            </div>
+          ))}
+        </div>
+      </div>
+      <form className="space-y-6">
+        {renderStep()}
+        <div className="flex justify-between mt-6">
+          {step > 1 && (
+            <Button type="button" onClick={prevStep}>
+              Previous
+            </Button>
+          )}
+          {step < 4 ? (
+            <Button type="button" onClick={nextStep}>
+              Next
+            </Button>
+          ) : (
+            <Button 
+              type="button" 
+              onClick={generateScript}
+              disabled={formData.os === 'kubernetes'}
+            >
+              Generate Script
+            </Button>
           )}
         </div>
-      )
-    }
-    
-    interface FeatureCheckboxProps {
-      id: string
-      label: string
-      checked: boolean
-      onCheckedChange: () => void
-      docLink: string
-      icon?: React.ReactNode
-    }
-    
-    function FeatureCheckbox({ id, label, checked, onCheckedChange, docLink, icon }: FeatureCheckboxProps) {
-      return (
-        <div className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md transition-colors">
-          <Checkbox id={id} checked={checked} onCheckedChange={onCheckedChange} />
-          <div className="flex items-center flex-1">
-            {icon && <span className="mr-2">{icon}</span>}
-            <Label htmlFor={id} className="cursor-pointer">{label}</Label>
-          </div>
-          <a 
-            href={docLink} 
-            target="_blank" 
-            rel="noopener noreferrer" 
-            className="text-primary hover:text-primary/80 ml-auto"
-            title="View documentation"
+      </form>
+      {generatedScript && formData.os !== 'kubernetes' && (
+        <div className="mt-8 relative">
+          <h2 className="text-xl font-bold mb-2">Generated Installation Script</h2>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="absolute top-8 right-2 z-10"
+            onClick={() => copyToClipboard(generatedScript)}
+            aria-label="Copy generated script"
           >
-            <ExternalLink className="h-4 w-4" />
-          </a>
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Textarea ref={scriptRef} value={generatedScript} readOnly className="h-96 font-mono text-sm pr-10" />
         </div>
-      )
-    }
+      )}
+      {generatedScript && formData.os !== 'kubernetes' && (
+        <div className="mt-8">
+          <h2 className="text-xl font-bold mb-2">How to Execute the Script</h2>
+          <ol className="list-decimal list-inside space-y-2">
+            <li>Copy the generated script from the "Generated Installation Script" textarea above.</li>
+            {formData.os === 'docker' ? (
+              <>
+                <li>Open a terminal on your Docker host machine.</li>
+                <li>Paste the copied script into a new file, for example, <code>datadog.sh</code>.</li>
+                <li>Make the script executable by running: <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog.sh</pre></li>
+                <li>Execute the script with: <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog.sh</pre></li>
+              </>
+            ) : (
+              <>
+                <li>Open a text editor on your {formData.os === 'linux' ? 'Linux' : 'Windows'} machine.</li>
+                <li>Paste the copied script into the text editor.</li>
+                <li>Save the file with a {formData.os === 'linux' ? '.sh' : '.ps1'} extension (e.g. {formData.os === 'linux' ? 'datadog.sh'  : 'datadog.ps1'}).</li>
+                <li>Open a {formData.os === 'linux' ? 'terminal' : 'PowerShell window'} on your machine.</li>
+                <li>Navigate to the directory where you saved the script using the cd command.</li>
+                {formData.os === 'linux' ? (
+                  <>
+                    <li>Make the script executable by running the following command:
+                      <pre className="bg-muted p-2 mt-1 rounded">chmod +x datadog.sh</pre>
+                    </li>
+                    <li>Execute the script with root privileges using sudo:
+                      <pre className="bg-muted p-2 mt-1 rounded">sudo ./datadog.sh</pre>
+                    </li>
+                  </>
+                ) : (
+                  <li>Execute the script with administrator privileges:
+                    <pre className="bg-muted p-2 mt-1 rounded">powershell -ExecutionPolicy Bypass -File .\datadog.ps1</pre>
+                  </li>
+                )}
+              </>
+            )}
+            <li>Follow any prompts or instructions provided by the script during execution.</li>
+            <li>Once the script completes, verify that the Datadog Agent is running:
+              <pre className="bg-muted p-2 mt-1 rounded">
+                {formData.os === 'linux' ? 'sudo datadog-agent status' : formData.os === 'windows' ? '& "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status' : 'sudo docker exec -it dd-agent agent status'}
+              </pre>
+            </li>
+          </ol>
+          <p className="mt-4 text-red-600 font-semibold">
+            Warning: Always review scripts before running them with elevated privileges. Ensure you trust the source and understand the actions the script will perform on your system.
+          </p>
+          
+          {formData.os === 'docker' && (
+            <div className="mt-8">
+              <h2 className="text-xl font-bold mb-2">Run on Docker Compose</h2>
+              <p className="mb-4">
+                If you prefer to use Docker Compose to manage your containers, you can easily convert the Docker run command to a Docker Compose file. Follow these steps:
+              </p>
+              <ol className="list-decimal list-inside space-y-2">
+                <li>Copy the entire Docker run command from the generated script.</li>
+                <li>Visit <a href="https://www.composerize.com/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">https://www.composerize.com/</a>.</li>
+                <li>Composerize will automatically convert the command into a Docker Compose YAML format.</li>
+              </ol>
+              <p className="mt-4">
+                Using Docker Compose can make it easier to manage and update your Datadog Agent configuration, especially if you're running multiple containers or services.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface FeatureCheckboxProps {
+  id: string
+  label: string
+  checked: boolean
+  onCheckedChange: () => void
+  docLink: string
+}
+
+function FeatureCheckbox({ id, label, checked, onCheckedChange, docLink }: FeatureCheckboxProps) {
+  return (
+    <div className="flex items-center space-x-2">
+      <Checkbox id={id} checked={checked} onCheckedChange={onCheckedChange} />
+      <Label htmlFor={id}>{label}</Label>
+      <a href={docLink} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80">
+        <ExternalLink className="h-4 w-4" />
+      </a>
+    </div>
+  )
+}
