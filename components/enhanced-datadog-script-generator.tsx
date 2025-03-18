@@ -307,11 +307,12 @@ EOF
 done <<< "$log_dirs"` : ''}
 
 ${formData.advancedOptions.updateLogPermissions ? `# Update permissions for .log files
-echo "Updating permissions for .log files..."
-find / -type f -name "*.log" 2>/dev/null | while read -r logfile; do
-    chmod o+rx "$logfile"
-done
-sudo chmod -R o+r /var/log` : ''}
+echo "Setting ACLs for dd-agent on /var/log..."
+sudo setfacl -Rm u:dd-agent:rx /var/log
+
+#    Set default ACLs so new files/dirs inherit dd-agent's rx permissions:
+sudo setfacl -Rdm u:dd-agent:rx /var/log
+echo "ACLs have been set. Datadog log collection configuration updated."` : ''}
 
 # Restart the Datadog Agent to apply changes
 echo "Restarting the Datadog Agent..."
