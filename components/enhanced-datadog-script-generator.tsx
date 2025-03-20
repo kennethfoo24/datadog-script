@@ -536,9 +536,9 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" launch-gui
 
-Write-Host "Restart the Datadog Agent Service with... & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" restart-service"
-Write-Host "Status of Datadog Agent Service with... & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" status"
-Write-Host "GUI of Datadog Agent Service with... & "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" launch-gui"
+Write-Host "Restart the Datadog Agent Service with... & `"$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe`" restart-service"
+Write-Host "Status of Datadog Agent Service with... & `"$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe`" status"
+Write-Host "GUI of Datadog Agent Service with... & `"$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe`" launch-gui"
 `
 
       setGeneratedScript(script)
