@@ -557,6 +557,9 @@ docker run -d --name dd-agent \\
 ${formData.features.apm ? '-e DD_APM_NON_LOCAL_TRAFFIC=true \\' : ''}
 ${formData.features.apm ? '-e DD_APM_RECEIVER_SOCKET=/opt/datadog/apm/inject/run/apm.socket \\' : ''}
 ${formData.features.apm ? '-e DD_DOGSTATSD_SOCKET=/opt/datadog/apm/inject/run/dsd.socket \\' : ''}
+${formData.features.apm ? '-e DD_LOGS_INJECTION=true \\' : ''}
+${formData.features.apm ? '-e DD_TRACE_SAMPLE_RATE="1" \\' : ''}
+${formData.features.apm ? '-e DD_PROFILING_ENABLED=true \\' : ''}
 ${formData.features.apm ? '-v /opt/datadog/apm:/opt/datadog/apm \\' : ''}
 -e DD_APPSEC_ENABLED=${formData.features.threatProtection} \\
 -e DD_IAST_ENABLED=${formData.features.codeSecurityProfiling} \\
