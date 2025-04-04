@@ -308,13 +308,7 @@ echo "ACLs have been set. Datadog log collection configuration updated."
 # 1. Find all .log files in /var/log (including subdirectories).
 mapfile -t log_files < <(find "/var/log" -type f -name '*.log' 2>/dev/null)
 
-# 2. If no .log files are found, exit.
-if [ ${#log_files[@]} -eq 0 ]; then
-  echo "No .log files found under /var/log."
-  exit 0
-fi
-
-# 3. Iterate over each found .log file, set ACL, and display the updated ACL.
+# 2. Iterate over each found .log file, set ACL, and display the updated ACL.
 for file in "${log_files[@]}"; do
   echo "Setting ACL for: $file"
 
