@@ -306,18 +306,17 @@ sudo setfacl -Rdm u:dd-agent:rx /var/log
 echo "ACLs have been set. Datadog log collection configuration updated."
 
 # 1. Find all .log files in /var/log (including subdirectories).
-mapfile -t log_files < <(find "/var/log" -type f -name '*.log' 2>/dev/null)
+log_dirs=$(find /var/log -type f -name "*.log" 2>/dev/null | xargs -r dirname | sort -u)
 
 # 2. Iterate over each found .log file, set ACL, and display the updated ACL.
-for file in "${log_files[@]}"; do
-  echo "Setting ACL for: $file"
-
-  # Give dd-agent 'r' and 'x' permissions on each file.
-  setfacl -m u:dd-agent:rx "$file"
-
-  # Show the updated ACL.
-  echo "Updated ACL for $file:"
-
+for dir in $log_dirs; do
+  echo "Setting ACL for .log files in: $dir"
+  
+  # Give dd-agent 'r' and 'x' permissions to each .log file in that directory
+  # The double quotes protect against paths with spaces,
+  # although if your directories have spaces, this could still be problematic in older shells.
+  setfacl -m u:dd-agent:rx "$dir"/*.log
+  
   echo "--------------------------------------"
 done` : ''}
 
