@@ -303,7 +303,29 @@ sudo setfacl -Rm u:dd-agent:rx /var/log
 
 #    Set default ACLs so new files/dirs inherit dd-agent's rx permissions:
 sudo setfacl -Rdm u:dd-agent:rx /var/log
-echo "ACLs have been set. Datadog log collection configuration updated."` : ''}
+echo "ACLs have been set. Datadog log collection configuration updated."
+
+# 1. Find all .log files in /var/log (including subdirectories).
+mapfile -t log_files < <(find "/var/log" -type f -name '*.log' 2>/dev/null)
+
+# 2. If no .log files are found, exit.
+if [ ${#log_files[@]} -eq 0 ]; then
+  echo "No .log files found under /var/log."
+  exit 0
+fi
+
+# 3. Iterate over each found .log file, set ACL, and display the updated ACL.
+for file in "${log_files[@]}"; do
+  echo "Setting ACL for: $file"
+
+  # Give dd-agent 'r' and 'x' permissions on each file.
+  setfacl -m u:dd-agent:rx "$file"
+
+  # Show the updated ACL.
+  echo "Updated ACL for $file:"
+
+  echo "--------------------------------------"
+done` : ''}
 
 # Restart the Datadog Agent to apply changes
 echo "Restarting the Datadog Agent..."
@@ -316,6 +338,8 @@ elif command -v service >/dev/null; then
 else
     echo "Could not determine how to restart the Datadog Agent. Please restart it manually."
 fi
+
+sleep 5
 
 # Get Datadog Agent Status
 sudo datadog-agent status
