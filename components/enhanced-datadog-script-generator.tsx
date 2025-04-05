@@ -280,7 +280,8 @@ log_dirs=$(find /var/log -type f -name "*.log" 2>/dev/null | xargs -r dirname | 
 echo "logs:" > /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
 
 # Loop through each directory and create a log config entry
-while IFS= read -r dir; do
+echo "$log_dirs" | while IFS= read -r dir
+do
     # Derive a service name from the directory name
     # For example, use the last component of the directory path as the service name.
     service_name=$(basename "$dir")
@@ -294,9 +295,36 @@ while IFS= read -r dir; do
     source: "$source_name"
 EOF
 
-done <<< "$log_dirs"` : ''}
+done` : ''}
 
-${formData.advancedOptions.updateLogPermissions ? `# Update permissions for .log files
+${formData.advancedOptions.updateLogPermissions ? `
+# Check if 'setfacl' is already installed
+if ! command -v setfacl >/dev/null 2>&1; then
+    echo "ACL (setfacl) not found. Attempting to install..."
+    
+    # Detect which package manager is available
+    if command -v apt-get >/dev/null 2>&1; then
+        apt-get update
+        apt-get install -y acl
+    elif command -v yum >/dev/null 2>&1; then
+        yum install -y acl
+    elif command -v zypper >/dev/null 2>&1; then
+        zypper --non-interactive install acl
+    else
+        echo "Cannot determine your package manager. Please install 'acl' manually."
+        exit 1
+    fi
+    
+    # Double-check setfacl is now installed
+    if ! command -v setfacl >/dev/null 2>&1; then
+        echo "Failed to install ACL. Please install the 'acl' package manually."
+        exit 1
+    fi
+else
+    echo "ACL is already installed."
+fi
+
+# Update permissions for .log files
 #    Set default ACLs so existing files/dirs inherit dd-agent's rx permissions:
 echo "Setting ACLs for dd-agent on /var/log..."
 sudo setfacl -Rm u:dd-agent:rx /var/log
