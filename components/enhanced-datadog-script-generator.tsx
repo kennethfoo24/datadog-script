@@ -340,7 +340,7 @@ sudo datadog-agent status
 echo "Datadog Agent installation and configuration complete."
 
 echo "Restart Datadig Agent with command... sudo systemctl restart datadog-agent or sudo service datadog-agent restart"
-echo "Get Datadog Agent Status with command... sudo systemctl restart datadog-agent"
+echo "Get Datadog Agent Status with command... sudo datadog-agent status"
 echo "PLEASE RESTART THE DATADOG AGENT AND YOUR APPLICATION SERVICE TO SEE DATA!"
 
 `
