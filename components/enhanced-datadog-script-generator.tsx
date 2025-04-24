@@ -586,7 +586,21 @@ Write-Host "GUI of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datado
 
       setGeneratedScript(script)
     } else if (formData.os === 'docker') {
-      const script = `# Run the Datadog Agent installation script for Docker
+      const script = `
+#!/bin/bash
+
+# This is an unofficial Datadog Agent Installation Script
+# This is not affiliated with Datadog, please reach out to your Datadog account manager if you have any issues.
+
+set -x
+
+# Check if running as root
+if [[ $EUID -ne 0 ]]; then
+   echo "Please run this script as root or with sudo."
+   exit 1
+fi
+
+# Run the Datadog Agent installation script for Docker
 ${formData.features.apm ? 'DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"' : ''}
 
 # Run the Datadog Agent Docker container
