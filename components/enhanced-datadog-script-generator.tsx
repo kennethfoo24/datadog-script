@@ -133,7 +133,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
             .join(',')} \\`
         : ''
 
-      const script = `
+      let script = `
 
 #!/bin/bash
 
@@ -371,9 +371,16 @@ echo "PLEASE RESTART THE DATADOG AGENT AND YOUR APPLICATION SERVICE TO SEE DATA!
 
 `
 
+      // *** ADDED: Remove empty lines before setting the final script
+      script = script
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .join('\n')
+
+
       setGeneratedScript(script)
     } else if (formData.os === 'windows') {
-      const script = `
+      let script = `
 # Prompt for Datadog site selection
 $ddSite = "${formData.site}"
 
@@ -583,10 +590,15 @@ Write-Host "Restart the Datadog Agent Service with... & \`\"$env:ProgramFiles\\D
 Write-Host "Status of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" status"
 Write-Host "GUI of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" launch-gui"
 `
+      // *** ADDED: Remove empty lines before setting the final script
+      script = script
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .join('\n')
 
       setGeneratedScript(script)
     } else if (formData.os === 'docker') {
-      const script = `
+      let script = `
 #!/bin/bash
 
 # This is an unofficial Datadog Agent Installation Script
@@ -675,6 +687,12 @@ echo "You can view the logs by running: sudo docker logs dd-agent"
 echo "You can view the status by running: sudo docker exec -it dd-agent agent status"
 echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
 `
+      
+      // *** ADDED: Remove empty lines before setting the final script
+      script = script
+        .split('\n')
+        .filter(line => line.trim().length > 0)
+        .join('\n')
 
       setGeneratedScript(script)
     }
