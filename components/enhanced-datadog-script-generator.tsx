@@ -39,6 +39,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       python: false,
       dotnet: false,
       ruby: false,
+      php: false,
     },
     advancedOptions: {
       collectAllLogs: true,
@@ -83,9 +84,9 @@ export function EnhancedDatadogScriptGeneratorComponent() {
   const handleApmLanguageToggle = (language: string) => {
     setFormData((prev) => ({
       ...prev,
-      apmInstrumentationLanguages: { 
-        ...prev.apmInstrumentationLanguages, 
-        [language]: !prev.apmInstrumentationLanguages[language as keyof typeof prev.apmInstrumentationLanguages] 
+      apmInstrumentationLanguages: {
+        ...prev.apmInstrumentationLanguages,
+        [language]: !prev.apmInstrumentationLanguages[language as keyof typeof prev.apmInstrumentationLanguages],
       },
     }))
   }
@@ -107,10 +108,10 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       return
     }
 
-        // If Kubernetes is selected and we're moving past site selection
-        if (formData.os === 'kubernetes' && step === 2) {
-          window.open(getKubernetesUrl(), '_blank')
-        }
+    // If Kubernetes is selected and we're moving past site selection
+    if (formData.os === 'kubernetes' && step === 2) {
+      window.open(getKubernetesUrl(), '_blank')
+    }
     
     if (step === 3 && !formData.apiKey && formData.os !== 'kubernetes') {
       alert("Please enter your API key.")
@@ -129,7 +130,22 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       const apmInstrumentationLibraries = formData.features.apm
         ? `DD_APM_INSTRUMENTATION_LIBRARIES=${Object.entries(formData.apmInstrumentationLanguages)
             .filter(([_, value]) => value)
-            .map(([key, _]) => `${key}:${key === 'js' ? '5' : key === 'python' ? '2' : key === 'dotnet' ? '3' : key === 'ruby' ? '2' : '1'}`)
+            .map(([key, _]) => {
+              switch (key) {
+                case 'js':
+                  return 'js:5'
+                case 'python':
+                  return 'python:3'
+                case 'dotnet':
+                  return 'dotnet:3'
+                case 'ruby':
+                  return 'ruby:2'
+                case 'php':
+                  return 'php:1'
+                default:
+                  return `${key}:1`
+              }
+            })
             .join(',')} \\`
         : ''
 
@@ -714,11 +730,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
         return (
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Step 1: Select Platform</h2>
-            <RadioGroup
-              value={formData.os}
-              onValueChange={(value) => setFormData((prev) => ({ ...prev, os: value }))}
-              className="flex flex-col space-y-2"
-            >
+            <RadioGroup value={formData.os} onValueChange={(value) => setFormData((prev) => ({ ...prev, os: value }))} className="flex flex-col space-y-2">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="linux" id="os-linux" />
                 <Label htmlFor="os-linux">Linux</Label>
@@ -760,12 +772,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                 <h3 className="text-lg font-medium mb-2">Kubernetes Installation</h3>
                 <p>For Kubernetes installation, you'll be redirected to the official Datadog website with your selected site.</p>
                 <p className="mt-2">After clicking "Next", you'll be taken to:</p>
-                <a 
-                  href={getKubernetesUrl()} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="flex items-center mt-2 text-primary hover:underline"
-                >
+                <a href={getKubernetesUrl()} target="_blank" rel="noopener noreferrer" className="flex items-center mt-2 text-primary hover:underline">
                   {getKubernetesUrl()}
                   <ExternalLink className="ml-1 h-4 w-4" />
                 </a>
@@ -902,6 +909,13 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                           checked={formData.apmInstrumentationLanguages.ruby}
                           onCheckedChange={() => handleApmLanguageToggle('ruby')}
                           docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/"
+                        />
+                        <FeatureCheckbox
+                          id="apm-php"
+                          label="PHP"
+                          checked={formData.apmInstrumentationLanguages.php}
+                          onCheckedChange={() => handleApmLanguageToggle('php')}
+                          docLink="https://docs.datadoghq.com/tracing/setup_overview/setup/php/"
                         />
                       </div>
                     </div>
