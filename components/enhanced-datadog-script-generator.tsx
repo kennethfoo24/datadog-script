@@ -170,6 +170,14 @@ export DD_API_KEY="${formData.apiKey}"
 
 # Environment
 export ENV_NAME="${formData.env}"
+${formData.features.apm ? 'export DD_LOGS_INJECTION=true' : ''}
+${formData.features.apm ? 'export DD_TRACE_SAMPLE_RATE="1"' : ''}
+${formData.features.apm ? 'export DD_RUNTIME_METRICS_ENABLED=true' : ''}
+${formData.features.apm ? 'export DD_PROFILING_ENABLED=true' : ''}
+${formData.features.threatProtection ? 'export DD_APPSEC_ENABLED=true \\' : ''}
+${formData.features.codeSecurityProfiling ? 'export DD_IAST_ENABLED=true \\' : ''}
+${formData.features.softwareCompositionAnalysis ? 'export DD_APPSEC_SCA_ENABLED=true \\' : ''}
+
 
 # Install the Datadog Agent
 DD_API_KEY="$DD_API_KEY" \\
@@ -177,13 +185,6 @@ DD_SITE="$DD_SITE" \\
 DD_ENV="$ENV_NAME" \\
 ${formData.features.apm ? 'DD_APM_INSTRUMENTATION_ENABLED=host \\' : ''}
 ${apmInstrumentationLibraries}
-DD_LOGS_INJECTION=true \\
-DD_TRACE_SAMPLE_RATE="1" \\
-DD_RUNTIME_METRICS_ENABLED=true \\
-DD_PROFILING_ENABLED=true \\
-${formData.features.threatProtection ? 'DD_APPSEC_ENABLED=true \\' : ''}
-${formData.features.codeSecurityProfiling ? 'DD_IAST_ENABLED=true \\' : ''}
-${formData.features.softwareCompositionAnalysis ? 'DD_APPSEC_SCA_ENABLED=true \\' : ''}
 ${formData.features.cloudWorkloadSecurity ? 'DD_RUNTIME_SECURITY_CONFIG_ENABLED=true \\' : ''}
 ${formData.features.containerHostVulnerabilityManagement ? 'DD_SBOM_CONTAINER_IMAGE_ENABLED=true \\' : ''}
 ${formData.features.containerHostVulnerabilityManagement ? 'DD_SBOM_HOST_ENABLED=true \\' : ''}
@@ -631,10 +632,15 @@ fi
 # Run the Datadog Agent installation script for Docker
 ${formData.features.apm ? 'DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"' : ''}
 
+# Create a datadog network
+docker network create datadog
+
 # Run the Datadog Agent Docker container
 docker run -d --name dd-agent \\
 --cgroupns host \\
 --pid host \\
+--network datadog \\
+-p 8126:8126/tcp \\
 -e DD_API_KEY=${formData.apiKey} \\
 -e DD_SITE="${formData.site}" \\
 -e DD_ENV=${formData.env} \\
@@ -701,6 +707,7 @@ gcr.io/datadoghq/agent:7
 echo "Datadog Agent Docker container started. Please check the container logs for any issues."
 echo "You can view the logs by running: sudo docker logs dd-agent"
 echo "You can view the status by running: sudo docker exec -it dd-agent agent status"
+echo "Put your application containers in the same network as datadog --network datadog"
 echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
 `
       
