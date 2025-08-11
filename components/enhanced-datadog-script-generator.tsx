@@ -632,36 +632,44 @@ Write-Host "GUI of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datado
         .join('\n')
 
       setGeneratedScript(script)
-    } else if (formData.os === "docker") {
-      // Check if any APM languages are selected or if security features are enabled
-      const hasApmLanguages = Object.values(formData.apmInstrumentationLanguages).some((value) => value)
-      const hasSecurityFeatures =
-        formData.features.threatProtection ||
-        formData.features.codeSecurityProfiling ||
-        formData.features.softwareCompositionAnalysis
-
-      // Build the APM instrumentation libraries string
-      const apmInstrumentationLibraries = hasApmLanguages
+    } else if (formData.os === 'docker') {
+      // *** UPDATED — build APM libraries string for Docker
+      const apmInstrumentationLibraries = formData.features.apm
         ? Object.entries(formData.apmInstrumentationLanguages)
             .filter(([_, value]) => value)
             .map(([key, _]) => {
               switch (key) {
-                case "js":
-                  return "js:5"
-                case "python":
-                  return "python:3"
-                case "dotnet":
-                  return "dotnet:3"
-                case "ruby":
-                  return "ruby:2"
-                case "php":
-                  return "php:1"
+                case 'js':
+                  return 'js:5'
+                case 'python':
+                  return 'python:3'
+                case 'dotnet':
+                  return 'dotnet:3'
+                case 'ruby':
+                  return 'ruby:2'
+                case 'php':
+                  return 'php:1'
                 default:
                   return `${key}:1`
               }
             })
-            .join(",")
-        : ""
+            .join(',')
+        : ''
+
+      // *** UPDATED — detect if any App‑Sec feature is enabled
+      const isAppSecSelected =
+        formData.features.threatProtection ||
+        formData.features.softwareCompositionAnalysis ||
+        formData.features.codeSecurityProfiling
+
+      // *** UPDATED — choose the correct pre‑install command
+      const preInstallCommand = isAppSecSelected
+        ? `DD_APPSEC_ENABLED=true DD_IAST_ENABLED=true DD_APPSEC_SCA_ENABLED=true ${
+            apmInstrumentationLibraries ? `DD_APM_INSTRUMENTATION_LIBRARIES=${apmInstrumentationLibraries} ` : ''
+          }DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"`
+        : (formData.features.apm
+            ? 'DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"'
+            : '')
 
       let script = `
 #!/bin/bash
@@ -675,18 +683,12 @@ set -x
 if [[ $EUID -ne 0 ]]; then
    echo "Please run this script as root or with sudo."
    exit 1
-fi`
+fi
 
-      // Add the APM instrumentation installation command if needed
-      if (hasApmLanguages || hasSecurityFeatures) {
-        script += `
-# Install APM instrumentation libraries and security features
-${formData.features.threatProtection ? "DD_APPSEC_ENABLED=true " : ""}${formData.features.codeSecurityProfiling ? "DD_IAST_ENABLED=true " : ""}${formData.features.softwareCompositionAnalysis ? "DD_APPSEC_SCA_ENABLED=true " : ""}${hasApmLanguages ? `DD_APM_INSTRUMENTATION_LIBRARIES=${apmInstrumentationLibraries} ` : ""}DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"`
-      }
+# *** UPDATED — insert the correct pre‑install command
+${preInstallCommand}
 
-      script += `
-
-      # Create a datadog network
+# Create a datadog network
 docker network create datadog
 
 # Run the Datadog Agent Docker container
@@ -932,7 +934,7 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                     onCheckedChange={() => handleFeatureToggle('apm')}
                     docLink="https://docs.datadoghq.com/tracing/"
                   />
-                  {formData.features.apm && formData.os === 'linux' && (
+                    {formData.features.apm && (formData.os === 'linux' || formData.os === 'docker') && (
                     <div className="col-span-2 ml-6 space-y-2">
                       <Label className="text-sm font-semibold">APM Instrumentation Languages</Label>
                       <div className="grid grid-cols-2 gap-2">
