@@ -668,8 +668,8 @@ Write-Host "GUI of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datado
             apmInstrumentationLibraries ? `DD_APM_INSTRUMENTATION_LIBRARIES=${apmInstrumentationLibraries} ` : ''
           }DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"`
         : (formData.features.apm
-            ? 'DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"'
-            : '')
+            ? `${apmInstrumentationLibraries ? `DD_APM_INSTRUMENTATION_LIBRARIES=${apmInstrumentationLibraries} ` : ''}DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"`
+        : '')
 
       let script = `
 #!/bin/bash
@@ -685,7 +685,7 @@ if [[ $EUID -ne 0 ]]; then
    exit 1
 fi
 
-# *** UPDATED — insert the correct pre‑install command
+# Insert pre‑install command
 ${preInstallCommand}
 
 # Create a datadog network
