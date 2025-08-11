@@ -426,11 +426,31 @@ $apiKey = "${formData.apiKey}"
 $environmentName = "${formData.env}"
 
 # Construct tags from input
-$tags = "env:$environmentName"
+$env:DD_TAGS = "env:$environmentName"
 
 # Step 3: Install the Datadog Agent
-Write-Host "Installing Datadog Agent"
-Start-Process -Wait msiexec -ArgumentList '/passive /i "https://s3.amazonaws.com/ddagent-windows-stable/datadog-agent-7-latest.amd64.msi" APIKEY="$apiKey" SITE="$ddSite" TAGS="$tags"'
+Write-Host "Installing Datadog Agent using Install-Datadog.ps1"
+
+# Mandatory flags
+Set-ExecutionPolicy Bypass -Scope Process -Force
+[System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+$env:DD_API_KEY         = "$apiKey"
+$env:DD_SITE            = "$ddSite"
+$env:DD_ENV             = "$environmentName"
+$env:DD_REMOTE_UPDATES  = "true"
+
+# Optional APM automatic instrumentation for IIS /.NET
+if (${formData.features.apm}) {
+    $env:DD_APM_INSTRUMENTATION_ENABLED  = "iis"
+    $env:DD_APM_INSTRUMENTATION_LIBRARIES = "dotnet:3"   # build this string dynamically from your formData if needed
+}
+
+# Download & run the official installer wrapper
+(New-Object System.Net.WebClient).DownloadFile(
+  'https://install.datadoghq.com/Install-Datadog.ps1',
+  'C:\Windows\SystemTemp\Install-Datadog.ps1'
+)
+C:\Windows\SystemTemp\Install-Datadog.ps1
 
 # Step 4: Configure the Datadog Agent
 Write-Host "Configuring Datadog Agent"
