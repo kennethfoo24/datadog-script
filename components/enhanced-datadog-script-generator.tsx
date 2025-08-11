@@ -632,7 +632,37 @@ Write-Host "GUI of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datado
         .join('\n')
 
       setGeneratedScript(script)
-    } else if (formData.os === 'docker') {
+    } else if (formData.os === "docker") {
+      // Check if any APM languages are selected or if security features are enabled
+      const hasApmLanguages = Object.values(formData.apmInstrumentationLanguages).some((value) => value)
+      const hasSecurityFeatures =
+        formData.features.threatProtection ||
+        formData.features.codeSecurityProfiling ||
+        formData.features.softwareCompositionAnalysis
+
+      // Build the APM instrumentation libraries string
+      const apmInstrumentationLibraries = hasApmLanguages
+        ? Object.entries(formData.apmInstrumentationLanguages)
+            .filter(([_, value]) => value)
+            .map(([key, _]) => {
+              switch (key) {
+                case "js":
+                  return "js:5"
+                case "python":
+                  return "python:3"
+                case "dotnet":
+                  return "dotnet:3"
+                case "ruby":
+                  return "ruby:2"
+                case "php":
+                  return "php:1"
+                default:
+                  return `${key}:1`
+              }
+            })
+            .join(",")
+        : ""
+
       let script = `
 #!/bin/bash
 
@@ -645,12 +675,18 @@ set -x
 if [[ $EUID -ne 0 ]]; then
    echo "Please run this script as root or with sudo."
    exit 1
-fi
+fi`
 
-# Run the Datadog Agent installation script for Docker
-${formData.features.apm ? 'DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_docker_injection.sh)"' : ''}
+      // Add the APM instrumentation installation command if needed
+      if (hasApmLanguages || hasSecurityFeatures) {
+        script += `
+# Install APM instrumentation libraries and security features
+${formData.features.threatProtection ? "DD_APPSEC_ENABLED=true " : ""}${formData.features.codeSecurityProfiling ? "DD_IAST_ENABLED=true " : ""}${formData.features.softwareCompositionAnalysis ? "DD_APPSEC_SCA_ENABLED=true " : ""}${hasApmLanguages ? `DD_APM_INSTRUMENTATION_LIBRARIES=${apmInstrumentationLibraries} ` : ""}DD_APM_INSTRUMENTATION_ENABLED=docker DD_NO_AGENT_INSTALL=true bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"`
+      }
 
-# Create a datadog network
+      script += `
+
+      # Create a datadog network
 docker network create datadog
 
 # Run the Datadog Agent Docker container
