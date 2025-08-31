@@ -416,6 +416,7 @@ echo "Datadog Agent installation and configuration complete."
 
 echo "Restart Datadog Agent with command... sudo systemctl restart datadog-agent or sudo service datadog-agent restart"
 echo "Get Datadog Agent Status with command... sudo datadog-agent status"
+echo "Check your log collection files... sudo cat /etc/datadog-agent/conf.d/all_logs.d"
 echo "PLEASE RESTART THE DATADOG AGENT AND YOUR APPLICATION SERVICE TO SEE DATA!"
 
 `
@@ -743,6 +744,8 @@ if (Test-Path $allLogsConf) {
 Write-Host "Restart the Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" restart-service"
 Write-Host "Status of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" status"
 Write-Host "GUI of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" launch-gui"
+Write-Host "Check all your log collection files... Get-Content -Path "C:\\ProgramData\\Datadog\\conf.d\\all_logs.d\\conf.yaml" | Out-Host"
+
 `
       // *** ADDED: Remove empty lines before setting the final script
       script = script
