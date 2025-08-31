@@ -143,7 +143,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
   const apmInstrumentationLibraries =
     formData.features.apm && selectedApmLangs.length
       ? `DD_APM_INSTRUMENTATION_LIBRARIES=${selectedApmLangs.join(',')} \\`
-      : ''
+      : '';
 
       let script = `
 
@@ -393,9 +393,19 @@ sleep 5
 # Get Datadog Agent Status
 sudo datadog-agent status
 
+# Show contents of the all-logs config if present
+if [ -f "/etc/datadog-agent/conf.d/all_logs.d/conf.yaml" ]; then
+  echo ""
+  echo "----- /etc/datadog-agent/conf.d/all_logs.d/conf.yaml -----"
+  sudo cat /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
+  echo "----------------------------------------------------------"
+else
+  echo "All-logs config not found at /etc/datadog-agent/conf.d/all_logs.d/conf.yaml (Collect All Logs may be disabled)."
+fi
+
 echo "Datadog Agent installation and configuration complete."
 
-echo "Restart Datadig Agent with command... sudo systemctl restart datadog-agent or sudo service datadog-agent restart"
+echo "Restart Datadog Agent with command... sudo systemctl restart datadog-agent or sudo service datadog-agent restart"
 echo "Get Datadog Agent Status with command... sudo datadog-agent status"
 echo "PLEASE RESTART THE DATADOG AGENT AND YOUR APPLICATION SERVICE TO SEE DATA!"
 
@@ -642,7 +652,10 @@ New-Item -ItemType Directory -Path $allLogsDir -Force | Out-Null
 $allLogsConf = Join-Path $allLogsDir "conf.yaml"
 
 # Enumerate unique directories containing .log files across ALL drives (exclude Datadog paths)
-$driveRoots = Get-PSDrive -PSProvider FileSystem | Where-Object { Test-Path $_.Root } | Select-Object -ExpandProperty Root
+$driveRoots = [System.IO.DriveInfo]::GetDrives() |
+   Where-Object { $_.DriveType -eq 'Fixed' -and $_.IsReady } |
+   Select-Object -ExpandProperty RootDirectory |
+   ForEach-Object { $_.FullName }
 
 $logDirs = foreach ($root in $driveRoots) {
   Get-ChildItem -Path $root -Filter *.log -Recurse -ErrorAction SilentlyContinue |
@@ -661,16 +674,14 @@ foreach ($dir in $logDirs) {
   $yamlLines += "    service: $svc"
   $yamlLines += "    source: $svc"
 }
-[string]::Join("`r`n", $yamlLines) | Set-Content -Path $allLogsConf -Encoding UTF8
+[string]::Join([Environment]::NewLine, $yamlLines) | Set-Content -Path $allLogsConf -Encoding UTF8
 
 # Grant read permissions to the Datadog service account on these directories
 try {
-  $ddUser = "ddagentuser"
-  $inherit = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor `
-             [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+  $ddUser  = "ddagentuser"
+  $inherit = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
   $prop    = [System.Security.AccessControl.PropagationFlags]::None
-  $rights  = [System.Security.AccessControl.FileSystemRights]::ReadAndExecute -bor `
-             [System.Security.AccessControl.FileSystemRights]::ListDirectory
+  $rights  = [System.Security.AccessControl.FileSystemRights]::ReadAndExecute -bor [System.Security.AccessControl.FileSystemRights]::ListDirectory
 
   foreach ($dir in $logDirs) {
     try {
@@ -678,6 +689,18 @@ try {
       $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($ddUser, $rights, $inherit, $prop, "Allow")
       $acl.AddAccessRule($rule) | Out-Null
       Set-Acl -Path $dir -AclObject $acl
+
+      # Ensure existing .log files also have read perms
+      Get-ChildItem -Path $dir -Filter *.log -File -ErrorAction SilentlyContinue | ForEach-Object {
+        try {
+          $fAcl  = Get-Acl -Path $_.FullName
+          $fRule = New-Object System.Security.AccessControl.FileSystemAccessRule($ddUser, [System.Security.AccessControl.FileSystemRights]::Read, "Allow")
+          $fAcl.AddAccessRule($fRule) | Out-Null
+          Set-Acl -Path $_.FullName -AclObject $fAcl
+        } catch {
+          Write-Warning "ACL update failed for file $($_.FullName): $_"
+        }
+      }
     } catch {
       Write-Warning "ACL update failed for $dir: $_"
     }
@@ -696,6 +719,17 @@ Start-Sleep -Seconds 10  # Adjust the sleep time if necessary
 
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" status
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" launch-gui
+
+# Show contents of the all-logs config if present
+$allLogsConf = "C:\\ProgramData\\Datadog\\conf.d\\all_logs.d\\conf.yaml"
+if (Test-Path $allLogsConf) {
+  Write-Host ""
+  Write-Host "----- $allLogsConf -----"
+  Get-Content -Path $allLogsConf | Out-Host
+  Write-Host "------------------------"
+} else {
+  Write-Host "All-logs config not found at $allLogsConf (Collect All .log Files may be disabled)."
+}
 
 Write-Host "Restart the Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" restart-service"
 Write-Host "Status of Datadog Agent Service with... & \`\"$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe\`\" status"
@@ -765,7 +799,7 @@ fi
 ${preInstallCommand}
 
 # Create a datadog network
-docker network create datadog
+docker network create datadog || true
 
 # Run the Datadog Agent Docker container
 docker run -d --name dd-agent \\
@@ -821,7 +855,6 @@ ${formData.features.otlp ? `-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0
 -v /var/lib/docker/containers:/var/lib/docker/containers:ro \\
 -v /etc/group:/etc/group:ro \\
 -v /:/host/root:ro \\
--v /sys/kernel/debug:/sys/kernel/debug \\
 -v /etc/os-release:/etc/os-release \\
 -v /sys/kernel/debug:/sys/kernel/debug \\
 --security-opt apparmor:unconfined \\
@@ -841,6 +874,16 @@ echo "You can view the logs by running: sudo docker logs dd-agent"
 echo "You can view the status by running: sudo docker exec -it dd-agent agent status"
 echo "Put your application containers in the same network as datadog --network datadog"
 echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
+
+cat <<'SH'
+# Application
+docker run -d --name app \
+              --network <NETWORK_NAME> \
+              -v /var/run/datadog/:/var/run/datadog/ \
+              -e DD_TRACE_AGENT_URL=unix:///var/run/datadog/apm.socket \
+              company/app:latest
+SH
+
 `
       
       // *** ADDED: Remove empty lines before setting the final script
