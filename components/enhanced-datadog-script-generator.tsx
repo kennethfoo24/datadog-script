@@ -46,6 +46,7 @@ export function EnhancedDatadogScriptGeneratorComponent() {
       updateLogPermissions: true,
       collectIISLogs: true,
       collectWindowsEventLogs: true,
+      collectAllWindowsLogs: true
     },
   })
 
@@ -127,27 +128,22 @@ export function EnhancedDatadogScriptGeneratorComponent() {
 
   const generateScript = () => {
     if (formData.os === 'linux') {
-      const apmInstrumentationLibraries = formData.features.apm
-        ? `DD_APM_INSTRUMENTATION_LIBRARIES=${Object.entries(formData.apmInstrumentationLanguages)
-            .filter(([_, value]) => value)
-            .map(([key, _]) => {
-              switch (key) {
-                case 'js':
-                  return 'js:5'
-                case 'python':
-                  return 'python:3'
-                case 'dotnet':
-                  return 'dotnet:3'
-                case 'ruby':
-                  return 'ruby:2'
-                case 'php':
-                  return 'php:1'
-                default:
-                  return `${key}:1`
-              }
-            })
-            .join(',')} \\`
-        : ''
+      const selectedApmLangs = Object.entries(formData.apmInstrumentationLanguages)
+        .filter(([_, value]) => value)
+        .map(([key]) => {
+          switch (key) {
+            case 'js': return 'js:5'
+            case 'python': return 'python:3'
+            case 'dotnet': return 'dotnet:3'
+            case 'ruby': return 'ruby:2'
+            case 'php': return 'php:1'
+            default: return `${key}:1`
+        }
+      });
+  const apmInstrumentationLibraries =
+    formData.features.apm && selectedApmLangs.length
+      ? `DD_APM_INSTRUMENTATION_LIBRARIES=${selectedApmLangs.join(',')} \\`
+      : ''
 
       let script = `
 
@@ -169,7 +165,7 @@ export DD_SITE="${formData.site}"
 export DD_API_KEY="${formData.apiKey}"
 export ENV_NAME="${formData.env}"
 
-Datadog Environment Variables
+# Datadog Environment Variables
 export DATADOG_ENV_FILE="/etc/profile.d/datadog_env.sh"
 
 # Environment
@@ -225,7 +221,6 @@ ${formData.features.logs ? `logs_config:
 ## APM
 apm_config:
   enabled: ${formData.features.apm}
-  ${formData.features.apm ? 'apm_instrumentation_enabled: true' : ''}
 
 ## Process Monitoring
 process_config:
@@ -439,6 +434,13 @@ $env:DD_SITE            = "$ddSite"
 $env:DD_ENV             = "$environmentName"
 $env:DD_REMOTE_UPDATES  = "true"
 
+# Ensure we are elevated
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+  Write-Error "Please run PowerShell as Administrator."
+  exit 1
+}
+
 # Optional APM automatic instrumentation for IIS /.NET
 if (${formData.features.apm}) {
     $env:DD_APM_INSTRUMENTATION_ENABLED  = "iis"
@@ -448,9 +450,9 @@ if (${formData.features.apm}) {
 # Download & run the official installer wrapper
 (New-Object System.Net.WebClient).DownloadFile(
   'https://install.datadoghq.com/Install-Datadog.ps1',
-  'C:\Windows\SystemTemp\Install-Datadog.ps1'
+  'C:\Windows\Temp\Install-Datadog.ps1'
 )
-C:\Windows\SystemTemp\Install-Datadog.ps1
+C:\Windows\Temp\Install-Datadog.ps1
 
 # Step 4: Configure the Datadog Agent
 Write-Host "Configuring Datadog Agent"
@@ -631,6 +633,60 @@ logs:
 # Write the content to the iis.d/conf.yaml file
 $iisYamlContent | Set-Content -Path $iisLogConfigFile -Encoding UTF8
 ` : ''}
+
+${formData.advancedOptions.collectAllWindowsLogs ? `
+# Collect all .log files across the machine and grant permissions
+Write-Host "Configuring collection of ALL .log files (this may take a while)..."
+$allLogsDir = "C:\\ProgramData\\Datadog\\conf.d\\all_logs.d"
+New-Item -ItemType Directory -Path $allLogsDir -Force | Out-Null
+$allLogsConf = Join-Path $allLogsDir "conf.yaml"
+
+# Enumerate unique directories containing .log files across ALL drives (exclude Datadog paths)
+$driveRoots = Get-PSDrive -PSProvider FileSystem | Where-Object { Test-Path $_.Root } | Select-Object -ExpandProperty Root
+
+$logDirs = foreach ($root in $driveRoots) {
+  Get-ChildItem -Path $root -Filter *.log -Recurse -ErrorAction SilentlyContinue |
+    Where-Object { $_.FullName -notmatch '\\ProgramData\\Datadog\\' } |
+    Select-Object -ExpandProperty DirectoryName
+}
+
+$logDirs = $logDirs | Sort-Object -Unique
+
+# Build YAML
+$yamlLines = @("logs:")
+foreach ($dir in $logDirs) {
+  $svc = Split-Path $dir -Leaf
+  $yamlLines += "  - type: file"
+  $yamlLines += "    path: $dir\\*.log"
+  $yamlLines += "    service: $svc"
+  $yamlLines += "    source: $svc"
+}
+[string]::Join("`r`n", $yamlLines) | Set-Content -Path $allLogsConf -Encoding UTF8
+
+# Grant read permissions to the Datadog service account on these directories
+try {
+  $ddUser = "ddagentuser"
+  $inherit = [System.Security.AccessControl.InheritanceFlags]::ContainerInherit -bor `
+             [System.Security.AccessControl.InheritanceFlags]::ObjectInherit
+  $prop    = [System.Security.AccessControl.PropagationFlags]::None
+  $rights  = [System.Security.AccessControl.FileSystemRights]::ReadAndExecute -bor `
+             [System.Security.AccessControl.FileSystemRights]::ListDirectory
+
+  foreach ($dir in $logDirs) {
+    try {
+      $acl  = Get-Acl -Path $dir
+      $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($ddUser, $rights, $inherit, $prop, "Allow")
+      $acl.AddAccessRule($rule) | Out-Null
+      Set-Acl -Path $dir -AclObject $acl
+    } catch {
+      Write-Warning "ACL update failed for $dir: $_"
+    }
+  }
+} catch {
+  Write-Warning "Could not set ACLs for some directories: $_"
+}
+` : ''}
+
 # Step 5: Restart the Datadog Agent Service
 Write-Host "Restarting Datadog Agent Service"
 & "$env:ProgramFiles\\Datadog\\Datadog Agent\\bin\\agent.exe" restart-service
@@ -1093,6 +1149,14 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
                   )}
                   {formData.os === 'windows' && (
                     <>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="collectAllWindowsLogs"
+                          checked={formData.advancedOptions.collectAllWindowsLogs}
+                          onCheckedChange={() => handleAdvancedOptionToggle('collectAllWindowsLogs')}
+                        />
+                        <Label htmlFor="collectAllWindowsLogs">Collect All .log Files</Label>
+                      </div>
                       <div className="flex items-center space-x-2">
                         <Checkbox id="collectIISLogs" checked={formData.advancedOptions.collectIISLogs} onCheckedChange={() => handleAdvancedOptionToggle('collectIISLogs')} />
                         <Label htmlFor="collectIISLogs">Collect IIS Logs</Label>
