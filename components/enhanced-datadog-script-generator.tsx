@@ -300,9 +300,19 @@ runtime_security_config:
 EOF` : ''}
 
 ${formData.advancedOptions.collectAllLogs ? `# Configure the Agent to collect all .log files on the system
+# Configure the Agent to collect all .log files on the machine (prunes pseudo/ephemeral FS)
 mkdir -p /etc/datadog-agent/conf.d/all_logs.d
 
-log_dirs=$(find /var/log -type f -name "*.log" 2>/dev/null | xargs -r dirname | sort -u)
+# Find all unique directories that contain *.log files across the system,
+# skipping pseudo/ephemeral filesystems and container overlay paths.
+log_dirs=$(
+  find / \
+    \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /snap \
+       -o -path /var/lib/docker/overlay2 -o -path /var/lib/docker/aufs -o -path /var/lib/containerd \) -prune -o \
+    -type f -name "*.log" -print 2>/dev/null \
+  | xargs -r -I{} dirname "{}" \
+  | sort -u
+)
 
 # Begin the logs configuration file
 echo "logs:" > /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
@@ -310,19 +320,15 @@ echo "logs:" > /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
 # Loop through each directory and create a log config entry
 echo "$log_dirs" | while IFS= read -r dir
 do
-    # Derive a service name from the directory name
-    # For example, use the last component of the directory path as the service name.
     service_name=$(basename "$dir")
     source_name=$(basename "$dir")
 
-    # Create a log collection configuration entry for this directory
     cat <<EOF >> /etc/datadog-agent/conf.d/all_logs.d/conf.yaml
   - type: file
     path: "$dir/*.log"
     service: "$service_name"
     source: "$source_name"
 EOF
-
 done` : ''}
 
 ${formData.advancedOptions.updateLogPermissions ? `
@@ -361,18 +367,21 @@ sudo setfacl -Rm u:dd-agent:rx /var/log
 sudo setfacl -Rdm u:dd-agent:rx /var/log
 echo "ACLs have been set. Datadog log collection configuration updated."
 
-# 1. Find all .log files in /var/log (including subdirectories).
-log_dirs=$(find /var/log -type f -name "*.log" 2>/dev/null | xargs -r dirname | sort -u)
+# 1. Find all *.log directories across the system
+log_dirs=$(
+  find / \
+    \( -path /proc -o -path /sys -o -path /dev -o -path /run -o -path /snap \
+       -o -path /var/lib/docker/overlay2 -o -path /var/lib/docker/aufs -o -path /var/lib/containerd \) -prune -o \
+    -type f -name "*.log" -print 2>/dev/null \
+  | xargs -r -I{} dirname "{}" \
+  | sort -u
+)
 
-# 2. Iterate over each found .log file, set ACL, and display the updated ACL.
+# 2. Iterate over each directory, set ACLs
 for dir in $log_dirs; do
   echo "Setting ACL for .log files in: $dir"
-  
-  # Give dd-agent 'r' and 'x' permissions to each .log file in that directory
-  # The double quotes protect against paths with spaces,
-  # although if your directories have spaces, this could still be problematic in older shells.
-  setfacl -m u:dd-agent:rx "$dir"/*.log
-  
+  setfacl -m u:dd-agent:rx "$dir" 2>/dev/null || true
+  setfacl -m u:dd-agent:rx "$dir"/*.log 2>/dev/null || true
   echo "--------------------------------------"
 done` : ''}
 
@@ -809,7 +818,7 @@ docker run -d --name dd-agent \\
 -p 8126:8126/tcp \\
 -e DD_API_KEY=${formData.apiKey} \\
 -e DD_SITE="${formData.site}" \\
--e DD_ENV=${formData.env} \\
+-e DD_ENV="${formData.env}" \\
 -e DD_APM_ENABLED=${formData.features.apm} \\
 ${formData.features.apm ? '-e DD_APM_NON_LOCAL_TRAFFIC=true \\' : ''}
 ${formData.features.apm ? '-e DD_APM_RECEIVER_SOCKET=/opt/datadog/apm/inject/run/apm.socket \\' : ''}
@@ -896,7 +905,7 @@ SH
     }
   }
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(generatedScript)
       // Optionally show a notification that copy was successful
@@ -1266,7 +1275,7 @@ SH
             variant="outline"
             size="icon"
             className="absolute top-8 right-2 z-10"
-            onClick={() => copyToClipboard(generatedScript)}
+            onClick={copyToClipboard}
             aria-label="Copy generated script"
           >
             <Copy className="h-4 w-4" />
