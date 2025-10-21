@@ -824,12 +824,11 @@ docker run -d --name dd-agent \\
 -e DD_ENV="${formData.env}" \\
 -e DD_APM_ENABLED=${formData.features.apm} \\
 ${formData.features.apm ? '-e DD_APM_NON_LOCAL_TRAFFIC=true \\' : ''}
-${formData.features.apm ? '-e DD_APM_RECEIVER_SOCKET=/opt/datadog/apm/inject/run/apm.socket \\' : ''}
-${formData.features.apm ? '-e DD_DOGSTATSD_SOCKET=/opt/datadog/apm/inject/run/dsd.socket \\' : ''}
+${formData.features.apm ? '-e DD_APM_RECEIVER_SOCKET=/var/run/datadog/apm.socket \\' : ''}
+${formData.features.apm ? '-e DD_DOGSTATSD_SOCKET=/var/run/datadog/dsd.socket \\' : ''}
 ${formData.features.apm ? '-e DD_LOGS_INJECTION=true \\' : ''}
 ${formData.features.apm ? '-e DD_TRACE_SAMPLE_RATE="1" \\' : ''}
 ${formData.features.apm ? '-e DD_PROFILING_ENABLED=true \\' : ''}
-${formData.features.apm ? '-v /opt/datadog/apm:/opt/datadog/apm \\' : ''}
 -e DD_APPSEC_ENABLED=${formData.features.threatProtection} \\
 -e DD_IAST_ENABLED=${formData.features.codeSecurityProfiling} \\
 -e DD_APPSEC_SCA_ENABLED=${formData.features.softwareCompositionAnalysis} \\
@@ -890,7 +889,6 @@ echo "PLEASE RESTART YOUR APPLICATION SERVICE CONTAINERS TO SEE APM DATA!"
 cat <<'SH'
 # Application
 docker run -d --name app \
-              --network <NETWORK_NAME> \
               -v /var/run/datadog/:/var/run/datadog/ \
               -e DD_TRACE_AGENT_URL=unix:///var/run/datadog/apm.socket \
               company/app:latest
