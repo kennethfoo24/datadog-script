@@ -514,7 +514,7 @@ logs_config:
 
 ## APM
 apm_config:
-  enabled: ${formData.features.apm}
+  enabled: true
 
 ## Process Monitoring
 process_config:
