@@ -65,6 +65,8 @@ export function EnhancedDatadogScriptGeneratorComponent() {
         return 'https://app.datadoghq.eu/account/settings/agent/latest?platform=kubernetes'
       case 'ap1.datadoghq.com':
         return 'https://ap1.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
+      case 'ap2.datadoghq.com':
+        return 'https://ap2.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
       default:
         return 'https://app.datadoghq.com/account/settings/agent/latest?platform=kubernetes'
     }
