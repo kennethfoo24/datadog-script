@@ -961,6 +961,7 @@ SH
                 <SelectItem value="datadoghq.eu">EU1 (datadoghq.eu)</SelectItem>
                 <SelectItem value="ddog-gov.com">US1-FED (ddog-gov.com)</SelectItem>
                 <SelectItem value="ap1.datadoghq.com">AP1 (ap1.datadoghq.com)</SelectItem>
+                <SelectItem value="ap2.datadoghq.com">AP2 (ap2.datadoghq.com)</SelectItem>
               </SelectContent>
             </Select>
             {formData.os === 'kubernetes' && formData.site && (
