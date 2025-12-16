@@ -838,6 +838,7 @@ ${formData.features.otlp ? `-e DD_OTLP_CONFIG_RECEIVER_PROTOCOLS_GRPC_ENDPOINT=0
 -e DD_OTLP_CONFIG_LOGS_ENABLED=true \\` : ''}
 -e DD_LOGS_ENABLED=${formData.features.logs} \\
 -e DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=${formData.features.logs} \\
+-e DD_PROCESS_CONFIG_CONTAINER_COLLECTION_ENABLED=true \\
 -v /opt/datadog-agent/run:/opt/datadog-agent/run:rw \\
 -e DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED=${formData.features.processAgent} \\
 -v /etc/passwd:/etc/passwd:ro \\
